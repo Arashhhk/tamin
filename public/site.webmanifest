@@ -1,0 +1,15 @@
+{
+  "name": "تامین",
+  "short_name": "تامین",
+  "description": "پلتفرم مزایده معکوس خرید و تأمین کالا",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDF9F4",
+  "theme_color": "#E8792A",
+  "lang": "fa",
+  "dir": "rtl",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
