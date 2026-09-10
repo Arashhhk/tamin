@@ -4,8 +4,6 @@ import { formatNumber } from "@/lib/format";
 import UserRow from "./UserRow";
 
 export const metadata: Metadata = { title: "کاربران | ادمین", robots: { index: false } };
-export const revalidate = 0;
-
 export default async function AdminUsersPage() {
   const allUsers = await getAllUsersForAdmin();
 

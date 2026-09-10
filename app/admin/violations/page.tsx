@@ -5,8 +5,6 @@ import { sweepOverdueDeliveries } from "@/lib/violations";
 import ViolationRow from "./ViolationRow";
 
 export const metadata: Metadata = { title: "پرونده‌های تخلف | ادمین", robots: { index: false } };
-export const revalidate = 0;
-
 export default async function AdminViolationsPage() {
   // Opportunistic sweep: catches sellers who won a bid and never
   // confirmed delivery, even if nobody happened to open that RFQ's page.

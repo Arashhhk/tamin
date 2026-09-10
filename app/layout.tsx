@@ -3,6 +3,31 @@ import { Vazirmatn } from "next/font/google";
 import { site } from "@/lib/site";
 import "./globals.css";
 
+/**
+ * Forces every route in the app to render dynamically (per-request)
+ * instead of being statically generated at build time.
+ *
+ * Root cause this fixes: `Header` and `Footer` — rendered on nearly
+ * every page — are async Server Components that call
+ * `connectToDatabase()` (via `getCurrentUser()`, `getParentCategories()`,
+ * `getCategoryTree()`, etc.). Without this flag, Next.js's build
+ * process tries to statically pre-render pages during "Generating
+ * static pages", which means executing those components AT BUILD TIME
+ * — attempting a live MongoDB connection from Vercel's build
+ * environment. That connection isn't guaranteed to succeed (build
+ * servers may not have DB network access, or MONGODB_URI may not be
+ * exposed at build time), so the export step throws and the whole
+ * build fails.
+ *
+ * This app has no page that's actually static in practice — Header
+ * shows live auth state and Footer shows live category counts on every
+ * single route — so declaring the whole app dynamic here is the
+ * accurate fix, not a workaround: it tells Next.js the truth about
+ * this app's rendering requirements in one place, instead of patching
+ * it onto every individual page.
+ */
+export const dynamic = "force-dynamic";
+
 const vazir = Vazirmatn({
   subsets: ["arabic"],
   variable: "--font-vazir",

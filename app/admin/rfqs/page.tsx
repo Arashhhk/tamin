@@ -4,8 +4,6 @@ import { formatNumber } from "@/lib/format";
 import AdminRfqRow from "./AdminRfqRow";
 
 export const metadata: Metadata = { title: "درخواست‌های خرید | ادمین", robots: { index: false } };
-export const revalidate = 0;
-
 const statusFilters = [
   { value: "", label: "همه" },
   { value: "active", label: "در حال مزایده" },

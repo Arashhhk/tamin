@@ -1,10 +1,38 @@
+const DEFAULT_SITE_URL = "https://tamin-market.ir";
+
+/**
+ * Validates NEXT_PUBLIC_SITE_URL before using it anywhere. If it's
+ * missing, empty, or not a well-formed absolute URL (e.g. someone sets
+ * it to Vercel's own `VERCEL_URL`, which has no protocol — a very
+ * common mistake), `new URL(...)` throws. Left unguarded, that throw
+ * happens at module-evaluation time in the root layout's `metadata`
+ * export, which runs for every page and crashes the entire build.
+ * Falling back safely here means a misconfigured env var degrades to a
+ * default URL instead of taking down the whole production build.
+ */
+function resolveSiteUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!raw) return DEFAULT_SITE_URL;
+  try {
+    // `new URL` throws SyntaxError/TypeError on anything not a valid
+    // absolute URL (missing protocol, malformed host, etc.).
+    const parsed = new URL(raw);
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    console.warn(
+      `[site] NEXT_PUBLIC_SITE_URL="${raw}" is not a valid absolute URL (e.g. missing "https://"). Falling back to ${DEFAULT_SITE_URL}.`
+    );
+    return DEFAULT_SITE_URL;
+  }
+}
+
 export const site = {
   name: "تامین",
   nameEn: "Tamin",
   tagline: "پلتفرم مزایده‌ی تأمین کالا و خدمات",
   description:
     "تامین، پلتفرم مزایده‌ی معکوس برای خرید و تأمین کالا: درخواست خرید خود را ثبت کنید تا بهترین فروشندگان برایتان قیمت پیشنهاد دهند.",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://tamin-market.ir",
+  url: resolveSiteUrl(),
   locale: "fa_IR",
   themeColor: "#E8792A",
   twitter: "@tamin_market",

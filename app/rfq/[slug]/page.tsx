@@ -13,8 +13,6 @@ import { checkOverdueDeliveryForRfq } from "@/lib/violations";
 import { absoluteUrl } from "@/lib/site";
 import { formatNumber, formatToman, timeRemaining } from "@/lib/format";
 
-export const revalidate = 15;
-
 export async function generateMetadata({
   params
 }: {

@@ -18,8 +18,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" }
 };
 
-export const revalidate = 30;
-
 export default async function HomePage() {
   const [categories, activeRfqs, topSellers] = await Promise.all([
     getParentCategories(),

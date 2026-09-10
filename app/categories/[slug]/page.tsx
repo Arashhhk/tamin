@@ -10,8 +10,6 @@ import { connectToDatabase } from "@/lib/mongodb";
 import Rfq from "@/models/Rfq";
 import Category from "@/models/Category";
 
-export const revalidate = 30;
-
 export async function generateMetadata({
   params
 }: {

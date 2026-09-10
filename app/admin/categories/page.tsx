@@ -5,8 +5,6 @@ import CreateCategoryForm from "./CreateCategoryForm";
 import CategoryRow from "./CategoryRow";
 
 export const metadata: Metadata = { title: "دسته‌بندی‌ها | ادمین", robots: { index: false } };
-export const revalidate = 0;
-
 export default async function AdminCategoriesPage() {
   const tree = await getCategoryTree();
   const parentOptions = tree.map((p) => ({ id: p.id, name: p.name }));

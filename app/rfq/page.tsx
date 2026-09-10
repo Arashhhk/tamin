@@ -11,8 +11,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/rfq" }
 };
 
-export const revalidate = 30;
-
 export default async function RfqListPage() {
   // getActiveRfqs already filters status:'active' at the query level —
   // once a buyer selects a bid the RFQ disappears from here automatically.

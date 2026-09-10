@@ -14,8 +14,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }
 };
 
-export const revalidate = 15;
-
 const violationTypeLabels: Record<string, string> = {
   suspicious_price: "قیمت مشکوک",
   no_delivery: "عدم تحویل به‌موقع",
