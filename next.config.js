@@ -6,7 +6,7 @@ const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [
-      { protocol: "https", hostname: "**.tamin-market.ir" },
+      { protocol: "https", hostname: "**.pelleh.ir" },
       { protocol: "https", hostname: "images.unsplash.com" }
     ]
   },

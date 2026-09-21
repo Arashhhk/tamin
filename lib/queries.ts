@@ -71,14 +71,39 @@ export async function getCategoryBySlug(slug: string) {
   const cat = await Category.findOne({ slug }).lean();
   if (!cat) return null;
 
-  const isParent = !cat.parent;
-  let children: { id: string; slug: string; name: string; icon: string }[] = [];
-  let parentInfo: { slug: string; name: string } | null = null;
+  // A category is a "branch" (show subcategory list) if it HAS
+  // children, and a "leaf" (show RFQ cards) if it doesn't — checked by
+  // an actual query for children, NOT by whether it has a parent.
+  // The old logic used `!cat.parent`, which only correctly handled a
+  // flat 2-level tree: a category with a parent that ALSO had its own
+  // children (a 3rd level) would incorrectly be treated as a leaf and
+  // skip straight to an (empty) RFQ list instead of drilling down
+  // further. This now works for a tree of any depth.
+  const kids = await Category.find({ parent: cat._id }).sort({ name: 1 }).lean();
+  const isParent = kids.length > 0;
 
-  if (isParent) {
-    const kids = await Category.find({ parent: cat._id }).sort({ name: 1 }).lean();
-    children = kids.map((k) => ({ id: String(k._id), slug: k.slug, name: k.name, icon: k.icon }));
-  } else if (cat.parent) {
+  // Each child card shows either "N زیردسته" (if it's a branch itself)
+  // or "N درخواست فعال" (if it's a leaf) — a shallow, cheap check, not
+  // a full recursive rollup, which keeps this fast regardless of tree
+  // depth while still telling the visitor what clicking it leads to.
+  const children = await Promise.all(
+    kids.map(async (k) => {
+      const grandchildCount = await Category.countDocuments({ parent: k._id });
+      const rfqCount =
+        grandchildCount === 0 ? await Rfq.countDocuments({ category: k._id, status: "active" }) : 0;
+      return {
+        id: String(k._id),
+        slug: k.slug,
+        name: k.name,
+        icon: k.icon,
+        isBranch: grandchildCount > 0,
+        count: grandchildCount > 0 ? grandchildCount : rfqCount
+      };
+    })
+  );
+
+  let parentInfo: { slug: string; name: string } | null = null;
+  if (cat.parent) {
     const p = await Category.findById(cat.parent).lean();
     if (p) parentInfo = { slug: p.slug, name: p.name };
   }
@@ -407,6 +432,27 @@ export async function getSellerViolationHistory(sellerId: string) {
     resultingStrikeNumber: v.resultingStrikeNumber,
     createdAt: v.createdAt?.toISOString?.() ?? v.createdAt
   }));
+}
+
+export async function getSuggestions() {
+  await connectToDatabase();
+  const Suggestion = (await import("@/models/Suggestion")).default;
+  const suggestions = await Suggestion.find().sort({ createdAt: -1 }).lean();
+  return suggestions.map((s) => ({
+    id: String(s._id),
+    name: s.name,
+    email: s.email ?? null,
+    role: s.role ?? "guest",
+    message: s.message,
+    status: s.status,
+    createdAt: s.createdAt?.toISOString?.() ?? s.createdAt
+  }));
+}
+
+export async function getUnreadSuggestionsCount() {
+  await connectToDatabase();
+  const Suggestion = (await import("@/models/Suggestion")).default;
+  return Suggestion.countDocuments({ status: "new" });
 }
 
 export { serialize };

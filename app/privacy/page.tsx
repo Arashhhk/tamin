@@ -3,7 +3,7 @@ import StaticPage from "@/components/StaticPage";
 
 export const metadata: Metadata = {
   title: "حریم خصوصی",
-  description: "نحوه جمع‌آوری، استفاده و محافظت از اطلاعات کاربران در تامین.",
+  description: "نحوه جمع‌آوری، استفاده و محافظت از اطلاعات کاربران در پله.",
   alternates: { canonical: "/privacy" }
 };
 

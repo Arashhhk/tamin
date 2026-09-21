@@ -5,7 +5,7 @@ import { Mail, Phone, MapPin } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "تماس با ما",
-  description: "راه‌های ارتباط با تیم پشتیبانی تامین.",
+  description: "راه‌های ارتباط با تیم پشتیبانی پله.",
   alternates: { canonical: "/contact" }
 };
 
@@ -19,7 +19,7 @@ export default function ContactPage() {
           <div className="space-y-4">
             <p className="flex items-center gap-2 text-sm text-ink-600">
               <Mail className="h-4 w-4 text-camel-500" />
-              support@tamin-market.ir
+              support@pelleh.ir
             </p>
             <p className="flex items-center gap-2 text-sm text-ink-600">
               <Phone className="h-4 w-4 text-camel-500" />

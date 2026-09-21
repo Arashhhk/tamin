@@ -6,7 +6,7 @@ import { requireAdmin } from "@/lib/require-admin";
 import User from "@/models/User";
 
 export async function toggleVerifiedAction(formData: FormData) {
-  const admin = await requireAdmin();
+  await requireAdmin();
   await connectToDatabase();
 
   const id = String(formData.get("id") || "");
@@ -19,13 +19,13 @@ export async function toggleVerifiedAction(formData: FormData) {
 }
 
 export async function toggleStatusAction(formData: FormData) {
-  const admin = await requireAdmin();
+  await requireAdmin();
   await connectToDatabase();
 
+  // No more "don't suspend yourself" check here — admin is no longer a
+  // row in the User collection (see lib/admin-auth.ts), so there's no
+  // "self" among these users to protect against.
   const id = String(formData.get("id") || "");
-  if (id === String(admin._id)) {
-    throw new Error("نمی‌توانید حساب خودتان را مسدود کنید");
-  }
 
   const user = await User.findById(id);
   if (!user) throw new Error("کاربر یافت نشد");

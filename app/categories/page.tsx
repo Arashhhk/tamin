@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import * as Icons from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getCategoryTree } from "@/lib/queries";
@@ -8,7 +9,7 @@ import { formatNumber } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "همه دسته‌بندی‌ها",
-  description: "دسته‌بندی‌های کالا و خدمات روی تامین به همراه زیردسته‌های کامل هرکدام.",
+  description: "دسته‌بندی‌های کالا و خدمات روی پله به همراه زیردسته‌های کامل هرکدام.",
   alternates: { canonical: "/categories" }
 };
 
@@ -46,18 +47,30 @@ export default async function CategoriesPage() {
                     </span>
                   </span>
                 </Link>
-                <ul className="grid grid-cols-2 gap-x-3 gap-y-2">
+                {/*
+                  Subcategory chips, not a cramped two-column text list:
+                  each one is its own tappable pill with a visible
+                  border and hover state, wrapping naturally regardless
+                  of how many there are — legible at a glance instead of
+                  a wall of 12px text, and each one is clearly its own
+                  clickable target (important on mobile, where the old
+                  list packed links edge-to-edge).
+                */}
+                <div className="flex flex-wrap gap-2 border-t border-line pt-4">
                   {parent.children.map((child) => (
-                    <li key={child.id}>
-                      <Link
-                        href={`/categories/${child.slug}`}
-                        className="text-xs text-ink-600 hover:text-camel-600"
-                      >
-                        {child.name}
-                      </Link>
-                    </li>
+                    <Link
+                      key={child.id}
+                      href={`/categories/${child.slug}`}
+                      className="group flex items-center gap-1 rounded-full border border-line bg-sand px-3 py-1.5 text-[13px] font-bold text-ink-700 transition hover:border-camel-300 hover:bg-camel-50 hover:text-camel-700"
+                    >
+                      {child.name}
+                      <ChevronLeft className="h-3 w-3 text-ink-300 transition group-hover:text-camel-500" />
+                    </Link>
                   ))}
-                </ul>
+                  {parent.children.length === 0 && (
+                    <p className="text-xs text-ink-400">این دسته هنوز زیردسته‌ای ندارد.</p>
+                  )}
+                </div>
               </section>
             );
           })}

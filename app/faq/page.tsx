@@ -3,7 +3,7 @@ import StaticPage from "@/components/StaticPage";
 
 export const metadata: Metadata = {
   title: "سوالات متداول",
-  description: "پاسخ به پرسش‌های رایج درباره ثبت درخواست خرید، ارسال پیشنهاد و تحویل کالا در تامین.",
+  description: "پاسخ به پرسش‌های رایج درباره ثبت درخواست خرید، ارسال پیشنهاد و تحویل کالا در پله.",
   alternates: { canonical: "/faq" }
 };
 

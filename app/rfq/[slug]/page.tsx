@@ -97,7 +97,7 @@ export default async function RfqDetailPage({ params }: { params: { slug: string
         />
         <nav aria-label="مسیر صفحه" className="mb-4 text-xs text-ink-400">
           <Link href="/" className="hover:text-camel-600">
-            تامین
+            پله
           </Link>
           <span className="mx-1.5">/</span>
           <Link href={`/categories/${rfq.categorySlug}`} className="hover:text-camel-600">

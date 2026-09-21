@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "مجله تامین",
+  title: "مجله پله",
   description: "مقالات و راهنماهای خرید، تأمین کالا و مدیریت مزایده.",
   alternates: { canonical: "/blog" }
 };
@@ -13,7 +13,7 @@ export default function BlogIndexPage() {
     <>
       <Header />
       <main className="mx-auto max-w-4xl px-4 py-10 sm:px-6">
-        <h1 className="mb-2 text-2xl font-extrabold text-ink-900">مجله تامین</h1>
+        <h1 className="mb-2 text-2xl font-extrabold text-ink-900">مجله پله</h1>
         <p className="mb-8 text-sm text-ink-500">
           به‌زودی مقالات راهنمای خرید و تأمین کالا اینجا منتشر می‌شود.
         </p>

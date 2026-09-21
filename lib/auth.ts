@@ -2,7 +2,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
 const secret = new TextEncoder().encode(process.env.AUTH_SECRET || "dev-secret-change-me");
-const COOKIE_NAME = "tamin_session";
+const COOKIE_NAME = "pelleh_session";
 
 export interface SessionPayload {
   userId: string;

@@ -5,6 +5,7 @@ import * as Icons from "lucide-react";
 import { Pencil, Trash2, X, Check } from "lucide-react";
 import { updateCategoryAction, deleteCategoryAction } from "./actions";
 import { formatNumber } from "@/lib/format";
+import IconPicker from "./IconPicker";
 
 interface ParentOption {
   id: string;
@@ -83,12 +84,9 @@ export default function CategoryRow({
                 </option>
               ))}
           </select>
-          <input
-            value={icon}
-            onChange={(e) => setIcon(e.target.value)}
-            placeholder="آیکون"
-            className="w-24 rounded-lg border border-line px-2.5 py-1.5 text-xs focus:border-camel-400"
-          />
+          <div className="w-40">
+            <IconPicker name="icon-unused-in-controlled-mode" defaultValue={icon} onChange={setIcon} />
+          </div>
           <button
             onClick={handleSave}
             disabled={isPending}

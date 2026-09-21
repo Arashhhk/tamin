@@ -7,7 +7,7 @@ import { getActiveRfqs } from "@/lib/queries";
 export const metadata: Metadata = {
   title: "همه درخواست‌های خرید فعال",
   description:
-    "لیست کامل درخواست‌های خرید فعال روی تامین؛ روی هر درخواست، فروشندگان قیمت پیشنهاد می‌دهند.",
+    "لیست کامل درخواست‌های خرید فعال روی پله؛ روی هر درخواست، فروشندگان قیمت پیشنهاد می‌دهند.",
   alternates: { canonical: "/rfq" }
 };
 

@@ -3,16 +3,9 @@
 import { redirect } from "next/navigation";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getSession } from "@/lib/auth";
+import { slugify } from "@/lib/slugify";
 import Rfq from "@/models/Rfq";
 import Category from "@/models/Category";
-
-function slugify(title: string) {
-  const base = title
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^\u0600-\u06FFa-zA-Z0-9-]/g, "");
-  return `${base}-${Date.now().toString(36)}`;
-}
 
 export async function createRfq(formData: FormData) {
   const session = await getSession();

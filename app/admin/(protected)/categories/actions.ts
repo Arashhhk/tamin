@@ -3,15 +3,31 @@
 import { revalidatePath } from "next/cache";
 import { connectToDatabase } from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/require-admin";
+import { slugifyBase } from "@/lib/slugify";
 import Category from "@/models/Category";
 import Rfq from "@/models/Rfq";
 
-function slugify(input: string) {
-  return input
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^\u0600-\u06FFa-z0-9-]/g, "");
+/**
+ * Category slugs stay short and readable (unlike RFQ slugs, which
+ * always get a unique suffix because there are thousands of them) —
+ * categories are few and rarely renamed, so a clean "sanati" is nicer
+ * than "sanati-m3x7k2". Collisions are resolved with a plain numeric
+ * suffix (sanati-2, sanati-3, ...) instead.
+ */
+async function generateUniqueCategorySlug(input: string, excludeId?: string): Promise<string> {
+  const base = slugifyBase(input) || "dastebandi";
+  let candidate = base;
+  let attempt = 1;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const query: any = { slug: candidate };
+    if (excludeId) query._id = { $ne: excludeId };
+    const existing = await Category.findOne(query).select("_id").lean();
+    if (!existing) return candidate;
+    attempt += 1;
+    candidate = `${base}-${attempt}`;
+  }
 }
 
 export async function createCategoryAction(formData: FormData) {
@@ -25,9 +41,9 @@ export async function createCategoryAction(formData: FormData) {
 
   if (!name) throw new Error("نام دسته‌بندی الزامی است");
 
-  const slug = slugify(slugInput || name);
-  const existing = await Category.findOne({ slug });
-  if (existing) throw new Error("این نامک (slug) قبلاً استفاده شده است");
+  // Always transliterated to ASCII — raw Persian/Arabic characters in a
+  // URL slug are what caused the "صفحه یافت نشد" bug (see lib/slugify.ts).
+  const slug = await generateUniqueCategorySlug(slugInput || name);
 
   await Category.create({ name, slug, icon, parent: parentId || null });
   revalidatePath("/admin/categories");

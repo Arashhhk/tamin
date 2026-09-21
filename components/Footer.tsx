@@ -14,7 +14,7 @@ export default async function Footer() {
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-camel-500 text-white">
                 <Gavel className="h-4 w-4" />
               </span>
-              <span className="font-extrabold">تامین</span>
+              <span className="font-extrabold">پله</span>
             </Link>
             <p className="text-xs leading-6 text-ink-500">
               پلتفرم مزایده معکوس برای خرید و تأمین کالا و خدمات در سراسر
@@ -22,12 +22,12 @@ export default async function Footer() {
             </p>
           </div>
 
-          <nav aria-label="درباره تامین">
-            <h3 className="mb-3 text-sm font-extrabold text-ink-900">درباره تامین</h3>
+          <nav aria-label="درباره پله">
+            <h3 className="mb-3 text-sm font-extrabold text-ink-900">درباره پله</h3>
             <ul className="space-y-2 text-xs text-ink-500">
               <li>
                 <Link href="/how-it-works" className="hover:text-camel-600">
-                  تامین چطور کار می‌کند
+                  پله چطور کار می‌کند
                 </Link>
               </li>
               <li>
@@ -42,7 +42,7 @@ export default async function Footer() {
               </li>
               <li>
                 <Link href="/blog" className="hover:text-camel-600">
-                  مجله تامین
+                  مجله پله
                 </Link>
               </li>
             </ul>
@@ -59,6 +59,11 @@ export default async function Footer() {
               <li>
                 <Link href="/faq" className="hover:text-camel-600">
                   سوالات متداول
+                </Link>
+              </li>
+              <li>
+                <Link href="/suggestions" className="hover:text-camel-600">
+                  پیشنهادات و انتقادات
                 </Link>
               </li>
               <li>
@@ -131,7 +136,7 @@ export default async function Footer() {
         </div>
 
         <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-line pt-6 text-xs text-ink-400 sm:flex-row">
-          <p>© {new Date().getFullYear()} تامین. تمامی حقوق محفوظ است.</p>
+          <p>© {new Date().getFullYear()} پله. تمامی حقوق محفوظ است.</p>
           <p>ساخته‌شده برای تأمین صنعتی و تجاری ایران</p>
         </div>
       </div>

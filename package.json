@@ -1,5 +1,5 @@
 {
-  "name": "tamin-marketplace",
+  "name": "pelleh-marketplace",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -10,7 +10,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "test:db": "tsx scripts/test-db-connection.ts",
+    "fix-slugs": "tsx scripts/fix-category-slugs.ts"
   },
   "dependencies": {
     "next": "^14.2.15",

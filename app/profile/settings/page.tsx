@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { logoutAction } from "@/app/(auth)/actions";
 import { getCurrentUser } from "@/lib/current-user";
+import SwitchRoleButton from "./SwitchRoleButton";
 
 export const metadata: Metadata = {
   title: "تنظیمات حساب",
@@ -49,6 +50,21 @@ export default async function ProfileSettingsPage() {
           ذخیره تغییرات
         </button>
       </section>
+
+      {(user.role === "buyer" || user.role === "seller") && (
+        <section className="rounded-xl2 border border-line bg-white p-5 shadow-card">
+          <h2 className="mb-1 text-sm font-extrabold text-ink-900">نوع حساب</h2>
+          <p className="mb-4 text-xs text-ink-500">
+            حساب شما الان{" "}
+            <strong className="text-ink-800">
+              {user.role === "buyer" ? "خریدار" : "فروشنده"}
+            </strong>{" "}
+            است. اگر با گوگل ثبت‌نام کرده‌اید یا اشتباهی گزینه‌ی دیگری را
+            زده‌اید، هر وقت بخواهید می‌توانید نقش حساب‌تان را عوض کنید.
+          </p>
+          <SwitchRoleButton currentRole={user.role} />
+        </section>
+      )}
 
       <section className="rounded-xl2 border border-danger/20 bg-white p-5 shadow-card">
         <h2 className="mb-1 text-sm font-extrabold text-ink-900">خروج از حساب</h2>

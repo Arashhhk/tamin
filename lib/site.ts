@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = "https://tamin-market.ir";
+const DEFAULT_SITE_URL = "https://pelleh.ir";
 
 /**
  * Validates NEXT_PUBLIC_SITE_URL before using it anywhere. If it's
@@ -27,15 +27,15 @@ function resolveSiteUrl(): string {
 }
 
 export const site = {
-  name: "تامین",
-  nameEn: "Tamin",
+  name: "پله",
+  nameEn: "Pelleh",
   tagline: "پلتفرم مزایده‌ی تأمین کالا و خدمات",
   description:
-    "تامین، پلتفرم مزایده‌ی معکوس برای خرید و تأمین کالا: درخواست خرید خود را ثبت کنید تا بهترین فروشندگان برایتان قیمت پیشنهاد دهند.",
+    "پله، پلتفرم مزایده‌ی معکوس برای خرید و تأمین کالا: درخواست خرید خود را ثبت کنید تا بهترین فروشندگان برایتان قیمت پیشنهاد دهند.",
   url: resolveSiteUrl(),
   locale: "fa_IR",
-  themeColor: "#E8792A",
-  twitter: "@tamin_market",
+  themeColor: "#ff6d41",
+  twitter: "@pelleh_market",
   keywords: [
     "مزایده آنلاین",
     "درخواست خرید",

@@ -127,7 +127,7 @@ export default function SellerTermsModal() {
           <section className="flex items-start gap-2 rounded-lg border border-line bg-sand p-3 text-xs text-ink-500">
             <MessageSquareWarning className="mt-0.5 h-4 w-4 shrink-0 text-camel-500" />
             هدف این قوانین حفظ اعتماد خریداران و فروشندگان درست‌کار روی
-            پلتفرم تامین است.
+            پلتفرم پله است.
           </section>
 
           <label className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-line p-3 has-[:checked]:border-camel-400 has-[:checked]:bg-camel-50">

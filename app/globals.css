@@ -2,6 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * Role-based theming: the `camel` Tailwind color token (used
+ * everywhere across the app for primary buttons, links, badges, the
+ * hero, etc.) is driven by these CSS custom properties instead of
+ * fixed hex values (see tailwind.config.js).
+ *
+ *   :root          → buyer (logged in) AND guest (not logged in)
+ *                    default: the original brand orange.
+ *   .theme-seller  → seller (logged in): sky blue, one step deeper
+ *                    than Tailwind's default `sky` scale ("یکم
+ *                    تیره‌تر" per the design request).
+ *
+ * The theme class is applied to <html> in app/layout.tsx based on
+ * getCurrentUser().role — one place decides the theme, every existing
+ * `camel-*` className in the whole codebase repaints automatically.
+ * Values are space-separated R G B triplets (no commas), required by
+ * Tailwind's `rgb(var(--x) / <alpha-value>)` opacity-modifier syntax.
+ */
+:root {
+  --camel-50: 255 243 240;
+  --camel-100: 255 228 219;
+  --camel-200: 255 196 179;
+  --camel-300: 255 157 128;
+  --camel-400: 255 130 92;
+  --camel-500: 255 109 65;
+  --camel-600: 255 75 20;
+  --camel-700: 230 54 0;
+  --camel-800: 184 43 0;
+  --camel-900: 122 29 0;
+}
+
+.theme-seller {
+  --camel-50: 245 249 250;
+  --camel-100: 231 242 244;
+  --camel-200: 203 227 231;
+  --camel-300: 168 208 215;
+  --camel-400: 144 194 203;
+  --camel-500: 89 165 178;
+  --camel-600: 73 144 157;
+  --camel-700: 58 115 125;
+  --camel-800: 39 77 84;
+  --camel-900: 29 58 63;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -29,7 +73,18 @@ body {
 }
 
 .num {
+  font-family: theme("fontFamily.numeral");
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Every h1-h4 project-wide automatically gets the heading font — no
+ * need to add a `font-heading` class to each one by hand across ~40
+ * component files. Anything that explicitly needs the body font on a
+ * heading tag can still override with `font-sans`/`font-body`.
+ */
+h1, h2, h3, h4 {
+  font-family: theme("fontFamily.heading");
 }
 
 .text-balance {

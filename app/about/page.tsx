@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import StaticPage from "@/components/StaticPage";
 
 export const metadata: Metadata = {
-  title: "درباره تامین",
-  description: "تامین، پلتفرم مزایده معکوس برای خرید و تأمین کالا و خدمات صنعتی و تجاری.",
+  title: "درباره پله",
+  description: "پله، پلتفرم مزایده معکوس برای خرید و تأمین کالا و خدمات صنعتی و تجاری.",
   alternates: { canonical: "/about" }
 };
 
 export default function AboutPage() {
   return (
-    <StaticPage title="درباره تامین">
+    <StaticPage title="درباره پله">
       <p>
-        تامین یک پلتفرم مزایده معکوس است: به‌جای این‌که فروشنده قیمت
+        پله یک پلتفرم مزایده معکوس است: به‌جای این‌که فروشنده قیمت
         بگذارد و خریدار انتخاب کند، خریدار نیاز خود را اعلام می‌کند و
         فروشندگان مختلف برای جلب رضایت او بهترین قیمت را پیشنهاد می‌دهند.
       </p>

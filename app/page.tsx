@@ -37,7 +37,7 @@ export default async function HomePage() {
         {/* 2. How it works */}
         <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
           <SectionHeader
-            title="تامین چطور کار می‌کند؟"
+            title="پله چطور کار می‌کند؟"
             subtitle="چهار قدم ساده تا تامین کالای مورد نیاز شما."
           />
           <HowItWorksSection />
@@ -79,7 +79,7 @@ export default async function HomePage() {
         {/* 5. Recent activity */}
         <section className="border-t border-line bg-white py-12">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHeader title="فعالیت‌های اخیر پلتفرم" subtitle="آخرین اتفاقات روی تامین." />
+            <SectionHeader title="فعالیت‌های اخیر پلتفرم" subtitle="آخرین اتفاقات روی پله." />
             <RecentActivity />
           </div>
         </section>

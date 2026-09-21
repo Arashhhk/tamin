@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Vazirmatn } from "next/font/google";
 import { site } from "@/lib/site";
+import { getCurrentUser } from "@/lib/current-user";
 import "./globals.css";
 
 /**
@@ -30,7 +31,28 @@ export const dynamic = "force-dynamic";
 
 const vazir = Vazirmatn({
   subsets: ["arabic"],
-  variable: "--font-vazir",
+  // Three separate CSS variables, ALL pointing at the same font for
+  // now — this is the placeholder state. Once real font files are
+  // dropped in (see README, "سیستم سه‌فونتی"), each of these three
+  // `next/font/local` declarations gets swapped in independently,
+  // and every `font-heading` / `font-body` / `.num` class already
+  // wired up project-wide (see tailwind.config.js + globals.css)
+  // picks up the real fonts automatically — no other file changes.
+  variable: "--font-heading",
+  display: "swap",
+  fallback: ["Tahoma", "sans-serif"]
+});
+
+const vazirBody = Vazirmatn({
+  subsets: ["arabic"],
+  variable: "--font-body",
+  display: "swap",
+  fallback: ["Tahoma", "sans-serif"]
+});
+
+const vazirNumeral = Vazirmatn({
+  subsets: ["arabic"],
+  variable: "--font-numeral",
   display: "swap",
   fallback: ["Tahoma", "sans-serif"]
 });
@@ -95,7 +117,15 @@ export const viewport: Viewport = {
   themeColor: site.themeColor
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Role-based theme: buyer (or guest/not-logged-in) → orange (default
+  // CSS variables in :root), seller → sky blue (.theme-seller
+  // overrides in globals.css). This one class on <html> is all that's
+  // needed — every `camel-*` Tailwind class already used throughout
+  // the app repaints automatically, no per-component changes required.
+  const user = await getCurrentUser();
+  const themeClass = user?.role === "seller" ? "theme-seller" : "";
+
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -121,7 +151,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <html lang="fa" dir="rtl" className={vazir.variable}>
+    <html
+      lang="fa"
+      dir="rtl"
+      className={`${vazir.variable} ${vazirBody.variable} ${vazirNumeral.variable} ${themeClass}`}
+    >
       <body className="font-sans antialiased">
         <script
           type="application/ld+json"

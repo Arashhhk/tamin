@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getAllRfqsForAdmin } from "@/lib/queries";
 import { formatNumber } from "@/lib/format";
 import AdminRfqRow from "./AdminRfqRow";
@@ -31,7 +32,7 @@ export default async function AdminRfqsPage({
 
       <div className="mb-6 flex flex-wrap gap-2">
         {statusFilters.map((f) => (
-          <a
+          <Link
             key={f.value}
             href={f.value ? `/admin/rfqs?status=${f.value}` : "/admin/rfqs"}
             className={`rounded-full border px-3 py-1.5 text-xs font-bold ${
@@ -41,7 +42,7 @@ export default async function AdminRfqsPage({
             }`}
           >
             {f.label}
-          </a>
+          </Link>
         ))}
       </div>
 

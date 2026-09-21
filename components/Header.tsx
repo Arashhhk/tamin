@@ -3,6 +3,8 @@ import { Bell, Mail, Search, Gavel, PlusCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import { getParentCategories } from "@/lib/queries";
 import SellerTermsModal from "./SellerTermsModal";
+import LogoutButton from "./LogoutButton";
+import { logoutAction } from "@/app/(auth)/actions";
 
 const roleLabels: Record<string, string> = { buyer: "خریدار", seller: "فروشنده", admin: "ادمین" };
 
@@ -18,6 +20,22 @@ export default async function Header() {
   const [user, categories] = await Promise.all([getCurrentUser(), getParentCategories()]);
   const needsSellerTerms = Boolean(user && user.role === "seller" && !user.sellerTermsAcceptedAt);
 
+  // Header CTA changes by role:
+  //  - guest (not logged in, could become either): "ثبت درخواست خرید یا فروش"
+  //  - buyer: "ثبت درخواست خرید" → /rfq/new (creates a buy request)
+  //  - seller: "ثبت درخواست فروش" → /seller (this marketplace is
+  //    reverse-auction: only buyers post requests, sellers bid on them
+  //    — there's no separate "create a sell listing" page, so a
+  //    seller's version of this button sends them to their dashboard,
+  //    the closest real action, rather than to the buyer-only /rfq/new
+  //    which middleware would just redirect them away from anyway.
+  const ctaHref = user?.role === "seller" ? "/seller" : "/rfq/new";
+  const ctaLabel = !user
+    ? "ثبت درخواست خرید یا فروش"
+    : user.role === "seller"
+      ? "ثبت درخواست فروش"
+      : "ثبت درخواست خرید";
+
   return (
     <>
       {needsSellerTerms && <SellerTermsModal />}
@@ -27,12 +45,12 @@ export default async function Header() {
         <Link
           href="/"
           className="flex shrink-0 items-center gap-2 text-ink-900"
-          aria-label="تامین - صفحه اصلی"
+          aria-label="پله - صفحه اصلی"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-camel-500 text-white shadow-pop">
             <Gavel className="h-5 w-5" strokeWidth={2.25} />
           </span>
-          <span className="hidden text-lg font-extrabold tracking-tight sm:inline">تامین</span>
+          <span className="hidden text-lg font-extrabold tracking-tight sm:inline">پله</span>
         </Link>
 
         <div className="min-w-0 flex-1">
@@ -57,11 +75,11 @@ export default async function Header() {
         </div>
 
         <Link
-          href="/rfq/new"
+          href={ctaHref}
           className="hidden shrink-0 items-center gap-1.5 rounded-lg bg-camel-500 px-4 py-2.5 text-sm font-bold text-white shadow-pop transition hover:bg-camel-600 md:flex"
         >
           <PlusCircle className="h-4 w-4" />
-          ثبت درخواست خرید
+          {ctaLabel}
         </Link>
 
         <nav className="flex shrink-0 items-center gap-1.5">
@@ -98,6 +116,10 @@ export default async function Header() {
                   {user.name.slice(0, 1)}
                 </span>
               </Link>
+
+              <form action={logoutAction}>
+                <LogoutButton />
+              </form>
             </>
           ) : (
             <div className="flex items-center gap-2">
@@ -150,11 +172,11 @@ export default async function Header() {
       {/* Mobile CTA */}
       <div className="border-t border-line bg-white px-4 py-2 md:hidden">
         <Link
-          href="/rfq/new"
+          href={ctaHref}
           className="flex items-center justify-center gap-1.5 rounded-lg bg-camel-500 py-2.5 text-sm font-bold text-white"
         >
           <PlusCircle className="h-4 w-4" />
-          ثبت درخواست خرید
+          {ctaLabel}
         </Link>
       </div>
     </header>

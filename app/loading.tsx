@@ -1,23 +1,14 @@
+import { Loader2 } from "lucide-react";
+
+// Shown by Next.js automatically during any server-navigation on a
+// route segment that doesn't have its own more specific loading.tsx —
+// gives immediate visual feedback ("something is happening") instead
+// of the page appearing to freeze while the next page's data loads.
 export default function Loading() {
   return (
-    <div className="mx-auto max-w-7xl animate-pulse px-4 py-6 sm:px-6">
-      <div className="mb-6 h-40 rounded-xl2 bg-camel-100" />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_1fr_300px]">
-        <div className="space-y-4">
-          <div className="h-48 rounded-xl2 bg-ink-50" />
-          <div className="h-40 rounded-xl2 bg-ink-50" />
-        </div>
-        <div className="space-y-4">
-          <div className="grid grid-cols-4 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-24 rounded-xl2 bg-ink-50" />
-            ))}
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div className="h-48 rounded-xl2 bg-ink-50" />
-        </div>
-      </div>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-camel-500">
+      <Loader2 className="h-8 w-8 animate-spin" />
+      <p className="text-xs font-bold text-ink-400">در حال بارگذاری...</p>
     </div>
   );
 }

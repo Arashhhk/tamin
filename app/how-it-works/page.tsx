@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import StaticPage from "@/components/StaticPage";
 
 export const metadata: Metadata = {
-  title: "تامین چطور کار می‌کند",
-  description: "مراحل خرید و فروش در پلتفرم مزایده معکوس تامین.",
+  title: "پله چطور کار می‌کند",
+  description: "مراحل خرید و فروش در پلتفرم مزایده معکوس پله.",
   alternates: { canonical: "/how-it-works" }
 };
 
@@ -16,7 +16,7 @@ const steps = [
 
 export default function HowItWorksPage() {
   return (
-    <StaticPage title="تامین چطور کار می‌کند؟">
+    <StaticPage title="پله چطور کار می‌کند؟">
       <ol className="space-y-6">
         {steps.map((s) => (
           <li key={s.title}>

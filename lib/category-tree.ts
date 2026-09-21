@@ -1,4 +1,4 @@
-// Canonical category tree for تامین — parent categories with their
+// Canonical category tree for پله — parent categories with their
 // subcategories. Used by the seed script to populate MongoDB. Kept as a
 // single source of truth so admin-added categories and this default tree
 // don't drift out of sync in shape (name/slug/icon).

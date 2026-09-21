@@ -3,14 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { PlusCircle } from "lucide-react";
 import { createCategoryAction } from "./actions";
-
-const iconSuggestions = [
-  "Cog", "Building2", "Cpu", "Truck", "Sprout", "Briefcase", "Layers",
-  "Shirt", "FlaskConical", "UtensilsCrossed", "Stethoscope", "Package",
-  "Zap", "Mountain", "Sofa", "Laptop", "Printer", "Recycle", "Wrench",
-  "HardHat", "Microscope", "Dumbbell", "Smartphone", "Car", "Baby",
-  "Factory", "Hammer", "Drill"
-];
+import IconPicker from "./IconPicker";
 
 interface ParentOption {
   id: string;
@@ -73,19 +66,8 @@ export default function CreateCategoryForm({ parents }: { parents: ParentOption[
           className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-camel-400"
         />
       </div>
-      <div className="min-w-[160px]">
-        <label className="mb-1 block text-xs font-bold text-ink-800">آیکون</label>
-        <input
-          name="icon"
-          list="icon-suggestions"
-          defaultValue="Package"
-          className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-camel-400"
-        />
-        <datalist id="icon-suggestions">
-          {iconSuggestions.map((i) => (
-            <option key={i} value={i} />
-          ))}
-        </datalist>
+      <div className="w-44">
+        <IconPicker name="icon" defaultValue="Package" />
       </div>
       <button
         type="submit"

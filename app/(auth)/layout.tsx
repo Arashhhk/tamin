@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-camel-500 text-white shadow-pop">
             <Gavel className="h-5 w-5" />
           </span>
-          <span className="text-xl font-extrabold">تامین</span>
+          <span className="text-xl font-extrabold">پله</span>
         </Link>
         {children}
       </div>

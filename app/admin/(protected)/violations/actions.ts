@@ -6,8 +6,15 @@ import { requireAdmin } from "@/lib/require-admin";
 import SellerViolation from "@/models/SellerViolation";
 import User from "@/models/User";
 
+// NOTE: `reviewedBy` (a Mongo ObjectId ref to a User) is intentionally
+// left unset below. Since admin auth is now a single shared
+// ADMIN_USERNAME/ADMIN_PASSWORD from .env.local rather than a User
+// document (see lib/admin-auth.ts), there is no admin user id to
+// record here. `reviewedAt` still captures *when* a decision was made,
+// which covers the audit-trail need in practice.
+
 export async function banSellerAction(formData: FormData) {
-  const admin = await requireAdmin();
+  await requireAdmin();
   await connectToDatabase();
 
   const violationId = String(formData.get("violationId") || "");
@@ -20,7 +27,6 @@ export async function banSellerAction(formData: FormData) {
   });
 
   violation.status = "reviewed_banned";
-  violation.reviewedBy = admin._id;
   violation.reviewedAt = new Date();
   await violation.save();
 
@@ -28,7 +34,7 @@ export async function banSellerAction(formData: FormData) {
   // too, since the account is now fully banned.
   await SellerViolation.updateMany(
     { seller: violation.seller, status: "pending_review" },
-    { $set: { status: "reviewed_banned", reviewedBy: admin._id, reviewedAt: new Date() } }
+    { $set: { status: "reviewed_banned", reviewedAt: new Date() } }
   );
 
   revalidatePath("/admin/violations");
@@ -36,7 +42,7 @@ export async function banSellerAction(formData: FormData) {
 }
 
 export async function dismissViolationAction(formData: FormData) {
-  const admin = await requireAdmin();
+  await requireAdmin();
   await connectToDatabase();
 
   const violationId = String(formData.get("violationId") || "");
@@ -44,7 +50,6 @@ export async function dismissViolationAction(formData: FormData) {
   if (!violation) throw new Error("پرونده یافت نشد");
 
   violation.status = "reviewed_dismissed";
-  violation.reviewedBy = admin._id;
   violation.reviewedAt = new Date();
   await violation.save();
 

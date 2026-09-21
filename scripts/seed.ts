@@ -56,7 +56,7 @@ async function main() {
 
   const buyer = await User.create({
     name: "علی محمدی",
-    email: "buyer@tamin.ir",
+    email: "buyer@pelleh.ir",
     passwordHash,
     role: "buyer",
     province: "تهران",
@@ -67,9 +67,9 @@ async function main() {
   });
 
   const sellersData = [
-    { name: "فولاد پارس", email: "seller1@tamin.ir", province: "تهران", city: "تهران", rating: 4.9, dealsCompleted: 2456 },
-    { name: "صنعت گستر ایرانیان", email: "seller2@tamin.ir", province: "اصفهان", city: "اصفهان", rating: 4.8, dealsCompleted: 1890 },
-    { name: "تجهیز صنعت", email: "seller3@tamin.ir", province: "آذربایجان شرقی", city: "تبریز", rating: 4.8, dealsCompleted: 1567 }
+    { name: "فولاد پارس", email: "seller1@pelleh.ir", province: "تهران", city: "تهران", rating: 4.9, dealsCompleted: 2456 },
+    { name: "صنعت گستر ایرانیان", email: "seller2@pelleh.ir", province: "اصفهان", city: "اصفهان", rating: 4.8, dealsCompleted: 1890 },
+    { name: "تجهیز صنعت", email: "seller3@pelleh.ir", province: "آذربایجان شرقی", city: "تبریز", rating: 4.8, dealsCompleted: 1567 }
   ];
   const sellers = await User.insertMany(
     sellersData.map((s) => ({ ...s, passwordHash, role: "seller", verified: true }))
@@ -78,7 +78,7 @@ async function main() {
 
   const admin = await User.create({
     name: "مدیر سیستم",
-    email: "admin@tamin.ir",
+    email: "admin@pelleh.ir",
     passwordHash,
     role: "admin",
     verified: true
@@ -165,9 +165,9 @@ async function main() {
   console.log(`${rfqsData.length} درخواست خرید با پیشنهادهای اولیه ایجاد شد.`);
 
   console.log("\n✅ Seed کامل شد. اطلاعات ورود آزمایشی:");
-  console.log("  خریدار:  buyer@tamin.ir  /  password123");
-  console.log("  فروشنده: seller1@tamin.ir  /  password123");
-  console.log("  ادمین:   admin@tamin.ir  /  password123");
+  console.log("  خریدار:  buyer@pelleh.ir  /  password123");
+  console.log("  فروشنده: seller1@pelleh.ir  /  password123");
+  console.log("  ادمین:   admin@pelleh.ir  /  password123");
 
   await mongoose.disconnect();
   process.exit(0);

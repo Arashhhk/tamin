@@ -8,7 +8,7 @@ import { formatNumber } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "فروشندگان برتر",
-  description: "لیست فروشندگان با بالاترین امتیاز و بیشترین معاملات موفق در تامین.",
+  description: "لیست فروشندگان با بالاترین امتیاز و بیشترین معاملات موفق در پله.",
   alternates: { canonical: "/sellers" }
 };
 
