@@ -12,6 +12,7 @@ import BidsList from "./BidsList";
 import { getRfqBySlug, getBidsForViewer, getDeliveryConfirmation, getRatingForRfq } from "@/lib/queries";
 import { getCurrentUser } from "@/lib/current-user";
 import { checkOverdueDeliveryForRfq } from "@/lib/violations";
+import { isChatClosed, CHAT_AUTO_CLOSE_HOURS } from "@/lib/chat";
 import { absoluteUrl } from "@/lib/site";
 import { formatNumber, formatToman, timeRemaining } from "@/lib/format";
 
@@ -179,7 +180,12 @@ export default async function RfqDetailPage({ params }: { params: { slug: string
 
           {showDeliveryPanel && (
             <div className="mt-6">
-              <RfqChat rfqId={rfq.id} />
+              <RfqChat rfqId={rfq.id} closed={isChatClosed(rfq)} />
+              <p className="mt-2 text-[11px] leading-5 text-ink-400">
+                این گفتگو به‌محض تکمیل معامله (تایید تحویل توسط هر دو طرف) بسته می‌شود؛ در غیر
+                این صورت حداکثر تا {formatNumber(CHAT_AUTO_CLOSE_HOURS)} ساعت پس از انتخاب
+                فروشنده، حتی اگر تحویل هنوز تایید نشده باشد، به‌طور خودکار بسته خواهد شد.
+              </p>
             </div>
           )}
 

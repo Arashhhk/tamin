@@ -29,7 +29,7 @@ export default async function Hero() {
   const ctaLabel = !user
     ? "ثبت درخواست خرید یا فروش"
     : user.role === "seller"
-      ? "پنل فروشنده"
+      ? "ثبت درخواست فروش"
       : "ثبت درخواست خرید";
 
   return (
@@ -102,7 +102,7 @@ export default async function Hero() {
             }}
           >
             <Image
-              src="/2.png"
+              src="/hero-illustration.png"
               alt=""
               fill
               priority
@@ -113,11 +113,11 @@ export default async function Hero() {
         </div>
       </div>
 
-      {/* <Gavel
+      <Gavel
         aria-hidden
         strokeWidth={1}
         className="pointer-events-none absolute -left-4 -bottom-6 hidden h-40 w-40 -rotate-12 text-white/10 sm:block"
-      /> */}
+      />
     </section>
   );
 }

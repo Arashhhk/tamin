@@ -33,7 +33,7 @@ export default async function Header() {
   const ctaLabel = !user
     ? "ثبت درخواست خرید یا فروش"
     : user.role === "seller"
-      ? "پنل فروشنده"
+      ? "ثبت درخواست فروش"
       : "ثبت درخواست خرید";
 
   return (
@@ -153,6 +153,17 @@ export default async function Header() {
                 {item.label}
               </Link>
             ))}
+            {/* Only meaningful once logged in — this lists the
+                viewer's own deals (see app/deals/page.tsx), not a
+                public browse page like the rest of mainNav. */}
+            {user && (user.role === "buyer" || user.role === "seller") && (
+              <Link
+                href="/deals"
+                className="whitespace-nowrap text-xs font-bold text-ink-600 transition hover:text-camel-600"
+              >
+                معاملات
+              </Link>
+            )}
           </nav>
           <span className="h-4 w-px shrink-0 bg-line" aria-hidden />
           <div className="flex shrink-0 items-center gap-4">

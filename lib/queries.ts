@@ -132,6 +132,7 @@ function toRfqCard(r: any) {
     city: r.city,
     status: r.status,
     selectedBid: r.selectedBid ? String(r.selectedBid) : null,
+    selectedAt: r.selectedAt?.toISOString?.() ?? r.selectedAt ?? undefined,
     bidsCount: r.bidsCount ?? 0,
     lowestBid: r.lowestBid ?? undefined,
     createdAt: r.createdAt?.toISOString?.() ?? r.createdAt,
@@ -249,6 +250,33 @@ export async function getTopBuyers(limit = 3) {
     verified: b.verified,
     city: b.city
   }));
+}
+
+export async function getMyDeals(userId: string, role: "buyer" | "seller") {
+  await connectToDatabase();
+  // "معاملات" here means any RFQ that's past the open-bidding stage —
+  // a winner has been picked, whether delivery is still being
+  // coordinated (in_progress) or fully wrapped up (completed). Scoping
+  // this to status:"completed" only would miss exactly the case that
+  // prompted it: a seller who just won and has nowhere to go find that
+  // RFQ again, since it's already gone from every "active" listing.
+  const statusFilter = { status: { $in: ["in_progress", "completed"] } };
+  let rfqs;
+  if (role === "buyer") {
+    rfqs = await Rfq.find({ buyer: userId, ...statusFilter })
+      .populate("category", "slug")
+      .populate("buyer", "name")
+      .sort({ selectedAt: -1 })
+      .lean();
+  } else {
+    const wonRfqIds = await Bid.find({ seller: userId, status: "selected" }).distinct("rfq");
+    rfqs = await Rfq.find({ _id: { $in: wonRfqIds }, ...statusFilter })
+      .populate("category", "slug")
+      .populate("buyer", "name")
+      .sort({ selectedAt: -1 })
+      .lean();
+  }
+  return rfqs.map(toRfqCard);
 }
 
 export async function getAllUsersForAdmin() {

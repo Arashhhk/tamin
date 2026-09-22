@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { getSession } from "@/lib/auth";
+import { isChatClosed } from "@/lib/chat";
 import Rfq from "@/models/Rfq";
 import Bid from "@/models/Bid";
 import Message from "@/models/Message";
@@ -19,7 +20,7 @@ async function authorize(rfqId: string) {
   const session = await getSession();
   if (!session) return { error: NextResponse.json({ error: "غیرمجاز" }, { status: 401 }) };
 
-  const rfq = await Rfq.findById(rfqId).select("buyer selectedBid status");
+  const rfq = await Rfq.findById(rfqId).select("buyer selectedBid status selectedAt");
   if (!rfq || !rfq.selectedBid) {
     return { error: NextResponse.json({ error: "هنوز فروشنده‌ای برای این درخواست انتخاب نشده" }, { status: 409 }) };
   }
@@ -57,6 +58,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   await connectToDatabase();
   const auth = await authorize(params.id);
   if (auth.error) return auth.error;
+
+  if (isChatClosed(auth.rfq!)) {
+    return NextResponse.json({ error: "این گفتگو بسته شده است" }, { status: 409 });
+  }
 
   const { body } = await req.json().catch(() => ({ body: "" }));
   const text = typeof body === "string" ? body.trim().slice(0, 2000) : "";

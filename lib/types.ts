@@ -51,6 +51,7 @@ export interface Rfq {
   province: string;
   city?: string;
   status: RfqStatus;
+  selectedAt?: string;
   bidsCount: number;
   lowestBid?: number;
   createdAt: string;

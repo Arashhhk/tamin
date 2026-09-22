@@ -20,7 +20,7 @@ interface ChatMessage {
  * swapping the interval for a websocket/SSE connection only touches
  * this one component — the API route's shape doesn't need to change.
  */
-export default function RfqChat({ rfqId }: { rfqId: string }) {
+export default function RfqChat({ rfqId, closed = false }: { rfqId: string; closed?: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [loaded, setLoaded] = useState(false);
@@ -43,10 +43,11 @@ export default function RfqChat({ rfqId }: { rfqId: string }) {
 
   useEffect(() => {
     fetchMessages();
+    if (closed) return; // no point polling a conversation nothing can add to anymore
     const interval = setInterval(fetchMessages, 4000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rfqId]);
+  }, [rfqId, closed]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight });
@@ -104,26 +105,34 @@ export default function RfqChat({ rfqId }: { rfqId: string }) {
       </div>
 
       <div className="flex items-center gap-2 border-t border-line p-3">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          placeholder="پیام خود را بنویسید..."
-          className="flex-1 rounded-lg border border-line px-3 py-2 text-sm focus:border-camel-400"
-        />
-        <button
-          onClick={send}
-          disabled={isSending || !text.trim()}
-          aria-label="ارسال"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-camel-500 text-white transition hover:bg-camel-600 disabled:opacity-50"
-        >
-          <Send className="h-4 w-4" />
-        </button>
+        {closed ? (
+          <p className="w-full py-1.5 text-center text-xs font-bold text-ink-400">
+            این گفتگو بسته شده است.
+          </p>
+        ) : (
+          <>
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              placeholder="پیام خود را بنویسید..."
+              className="flex-1 rounded-lg border border-line px-3 py-2 text-sm focus:border-camel-400"
+            />
+            <button
+              onClick={send}
+              disabled={isSending || !text.trim()}
+              aria-label="ارسال"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-camel-500 text-white transition hover:bg-camel-600 disabled:opacity-50"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </>
+        )}
       </div>
       {error && <p className="px-3 pb-2 text-[11px] font-bold text-danger">{error}</p>}
     </div>
