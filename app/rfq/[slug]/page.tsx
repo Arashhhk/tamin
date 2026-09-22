@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import BidForm from "@/components/BidForm";
 import DeliveryConfirmPanel from "@/components/DeliveryConfirmPanel";
+import RfqChat from "@/components/RfqChat";
 import RatingForm from "@/components/RatingForm";
 import BidsList from "./BidsList";
 import { getRfqBySlug, getBidsForViewer, getDeliveryConfirmation, getRatingForRfq } from "@/lib/queries";
@@ -164,15 +165,21 @@ export default async function RfqDetailPage({ params }: { params: { slug: string
             </div>
           )}
 
-          {showDeliveryPanel && delivery && (
+          {showDeliveryPanel && (
             <div className="mt-6">
               <DeliveryConfirmPanel
                 rfqId={rfq.id}
-                buyerConfirmed={delivery.buyerConfirmed}
-                sellerConfirmed={delivery.sellerConfirmed}
-                completed={delivery.completed}
+                buyerConfirmed={delivery?.buyerConfirmed ?? false}
+                sellerConfirmed={delivery?.sellerConfirmed ?? false}
+                completed={delivery?.completed ?? false}
                 viewerRole={viewer!.role as "buyer" | "seller"}
               />
+            </div>
+          )}
+
+          {showDeliveryPanel && (
+            <div className="mt-6">
+              <RfqChat rfqId={rfq.id} />
             </div>
           )}
 
