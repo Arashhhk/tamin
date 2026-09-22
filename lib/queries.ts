@@ -66,6 +66,122 @@ export async function getParentCategories() {
   return tree.map(({ children, ...rest }) => rest);
 }
 
+/**
+ * Every category, flattened, each with its full breadcrumb `path`
+ * (e.g. "دیجیتال > موبایل > سامسونگ") and whether it's a leaf (no
+ * children of its own). Building block for:
+ *   - the admin "parent" dropdown (any category, any depth, can be a
+ *     parent — see app/admin/(protected)/categories)
+ *   - the RFQ posting form's category select (only leaves make sense
+ *     there — see app/rfq/new/page.tsx)
+ * One query, walked in memory, rather than N queries for N categories.
+ */
+export async function getAllCategoriesFlat() {
+  await connectToDatabase();
+  const all = await Category.find().lean();
+  const byId = new Map(all.map((c) => [String(c._id), c]));
+  const childCount = new Map<string, number>();
+  for (const c of all) {
+    if (c.parent) {
+      const key = String(c.parent);
+      childCount.set(key, (childCount.get(key) ?? 0) + 1);
+    }
+  }
+
+  function pathAndDepthOf(c: any): { path: string; depth: number } {
+    const names: string[] = [c.name];
+    let depth = 0;
+    let cur = c;
+    // Guards against a corrupt/cyclical parent chain (shouldn't happen —
+    // updateCategoryAction rejects making a category its own descendant —
+    // but a hard cap here means a bad chain degrades to a wrong label
+    // instead of an infinite loop.
+    while (cur.parent && depth < 20) {
+      const p = byId.get(String(cur.parent));
+      if (!p) break;
+      names.unshift(p.name);
+      depth += 1;
+      cur = p;
+    }
+    return { path: names.join(" > "), depth };
+  }
+
+  return all
+    .map((c) => {
+      const { path, depth } = pathAndDepthOf(c);
+      return {
+        id: String(c._id),
+        slug: c.slug,
+        name: c.name,
+        icon: c.icon,
+        parent: c.parent ? String(c.parent) : null,
+        depth,
+        path,
+        isLeaf: !childCount.has(String(c._id))
+      };
+    })
+    .sort((a, b) => a.path.localeCompare(b.path, "fa"));
+}
+
+export async function getLeafCategories() {
+  const flat = await getAllCategoriesFlat();
+  return flat.filter((c) => c.isLeaf);
+}
+
+/**
+ * Full category tree, any depth — unlike getCategoryTree() above,
+ * which is hardcoded to exactly 2 levels for the several older
+ * call sites (homepage, header, footer, RFQ browsing) that only ever
+ * expected a flat parent+children shape. This is the one the admin
+ * panel's category manager uses, since admins need to nest a category
+ * under any other category, however deep — see
+ * app/admin/(protected)/categories/CategoryTreeNode.tsx.
+ */
+export async function getFullCategoryTree() {
+  await connectToDatabase();
+  const flat = await getAllCategoriesFlat();
+  const rfqCounts = await Rfq.aggregate([
+    { $match: { status: "active" } },
+    { $group: { _id: "$category", count: { $sum: 1 } } }
+  ]);
+  const countMap = new Map(rfqCounts.map((r: any) => [String(r._id), r.count as number]));
+
+  interface Node {
+    id: string;
+    slug: string;
+    name: string;
+    icon: string;
+    parent: string | null;
+    rfqCount: number;
+    children: Node[];
+  }
+  const nodesById = new Map<string, Node>();
+  for (const c of flat) {
+    nodesById.set(c.id, { ...c, rfqCount: countMap.get(c.id) ?? 0, children: [] });
+  }
+  const roots: Node[] = [];
+  for (const node of nodesById.values()) {
+    const parentNode = node.parent ? nodesById.get(node.parent) : undefined;
+    if (parentNode) parentNode.children.push(node);
+    else roots.push(node); // top-level, or an orphaned parent reference
+  }
+
+  // Roll up each branch's own rfqCount to include everything beneath
+  // it, so its badge reads as "total requests under here", matching
+  // what getCategoryTree() already did for its one level of children.
+  function rollup(node: Node): number {
+    node.rfqCount += node.children.reduce((sum, child) => sum + rollup(child), 0);
+    return node.rfqCount;
+  }
+  function sortByName(nodes: Node[]) {
+    nodes.sort((a, b) => a.name.localeCompare(b.name, "fa"));
+    nodes.forEach((n) => sortByName(n.children));
+  }
+  roots.forEach(rollup);
+  sortByName(roots);
+  return roots;
+}
+
 export async function getCategoryBySlug(slug: string) {
   await connectToDatabase();
   const cat = await Category.findOne({ slug }).lean();

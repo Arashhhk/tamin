@@ -15,11 +15,11 @@ interface ParentOption {
 export default function CategoryRow({
   category,
   parents,
-  isSubcategory = false
+  depth = 0
 }: {
   category: { id: string; slug: string; name: string; icon: string; rfqCount: number; parent?: string | null };
   parents: ParentOption[];
-  isSubcategory?: boolean;
+  depth?: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(category.name);
@@ -110,7 +110,7 @@ export default function CategoryRow({
 
   return (
     <div
-      className={`flex items-center justify-between rounded-xl2 border border-line bg-white p-3 ${isSubcategory ? "bg-sand/60" : "shadow-card"}`}
+      className={`flex items-center justify-between rounded-xl2 border border-line bg-white p-3 ${depth > 0 ? "bg-sand/60" : "shadow-card"}`}
     >
       <span className="flex items-center gap-3">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-camel-50 text-camel-600">

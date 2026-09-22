@@ -112,8 +112,8 @@ export default async function Hero() {
           </div>
         </div>
       </div>
-
-      {/* <Gavel
+{/* 
+      <Gavel
         aria-hidden
         strokeWidth={1}
         className="pointer-events-none absolute -left-4 -bottom-6 hidden h-40 w-40 -rotate-12 text-white/10 sm:block"

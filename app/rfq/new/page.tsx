@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProvinceCitySelect from "@/components/ProvinceCitySelect";
-import { getCategoryTree } from "@/lib/queries";
+import { getLeafCategories } from "@/lib/queries";
 import { createRfq } from "./actions";
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewRfqPage() {
-  const categoryTree = await getCategoryTree();
+  const leafCategories = await getLeafCategories();
   return (
     <>
       <Header />
@@ -64,14 +64,10 @@ export default async function NewRfqPage() {
                 className="w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-camel-400"
               >
                 <option value="">انتخاب کنید</option>
-                {categoryTree.map((parent) => (
-                  <optgroup key={parent.id} label={parent.name}>
-                    {parent.children.map((child) => (
-                      <option key={child.id} value={child.slug}>
-                        {child.name}
-                      </option>
-                    ))}
-                  </optgroup>
+                {leafCategories.map((c) => (
+                  <option key={c.id} value={c.slug}>
+                    {c.path}
+                  </option>
                 ))}
               </select>
             </div>

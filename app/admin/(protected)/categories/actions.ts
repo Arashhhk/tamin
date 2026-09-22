@@ -90,6 +90,22 @@ export async function updateCategoryAction(formData: FormData) {
   if (parentId !== null) {
     const p = String(parentId).trim();
     if (p === id) throw new Error("یک دسته‌بندی نمی‌تواند زیرمجموعه‌ی خودش باشد");
+    if (p) {
+      // With unlimited nesting depth now allowed, a category could be
+      // moved under one of its OWN descendants (e.g. making "دیجیتال"
+      // a child of "سامسونگ" when سامسونگ is already under دیجیتال) —
+      // that's a cycle, not just a self-reference, so walk up from the
+      // proposed new parent and reject if we ever reach `id`.
+      let cursor = await Category.findById(p).select("parent").lean();
+      let depth = 0;
+      while (cursor?.parent && depth < 20) {
+        if (String(cursor.parent) === id) {
+          throw new Error("یک دسته‌بندی نمی‌تواند زیرمجموعه‌ی یکی از زیردسته‌های خودش باشد");
+        }
+        cursor = await Category.findById(cursor.parent).select("parent").lean();
+        depth += 1;
+      }
+    }
     update.parent = p || null;
   }
 
