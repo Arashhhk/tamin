@@ -11,6 +11,7 @@ export interface PublicUser {
   city?: string;
   province?: string;
   rating: number; // 0-5
+  ratingCount: number;
   dealsCompleted: number;
   verified: boolean;
 }
@@ -48,7 +49,7 @@ export interface Rfq {
   quantity: number;
   unit: string;
   province: string;
-  city: string;
+  city?: string;
   status: RfqStatus;
   bidsCount: number;
   lowestBid?: number;

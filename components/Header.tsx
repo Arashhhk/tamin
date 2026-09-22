@@ -33,7 +33,7 @@ export default async function Header() {
   const ctaLabel = !user
     ? "ثبت درخواست خرید یا فروش"
     : user.role === "seller"
-      ? "ثبت درخواست فروش"
+      ? "داشبورد فروش"
       : "ثبت درخواست خرید";
 
   return (

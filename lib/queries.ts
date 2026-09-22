@@ -221,9 +221,33 @@ export async function getTopSellers(limit = 3) {
     name: s.name,
     role: "seller" as const,
     rating: s.rating,
+    ratingCount: s.ratingCount,
     dealsCompleted: s.dealsCompleted,
     verified: s.verified,
     city: s.city
+  }));
+}
+
+export async function getTopBuyers(limit = 3) {
+  await connectToDatabase();
+  // Buyers aren't rated by anyone yet (only buyer -> seller rating
+  // exists today — see components/RatingForm.tsx), so ranking is by
+  // completed-purchase volume; the `rating` tiebreak is a no-op now
+  // but starts working automatically if a seller -> buyer rating flow
+  // is ever added later, with no change needed here.
+  const buyers = await User.find({ role: "buyer", status: "active" })
+    .sort({ dealsCompleted: -1, rating: -1 })
+    .limit(limit)
+    .lean();
+  return buyers.map((b) => ({
+    id: String(b._id),
+    name: b.name,
+    role: "buyer" as const,
+    rating: b.rating,
+    ratingCount: b.ratingCount,
+    dealsCompleted: b.dealsCompleted,
+    verified: b.verified,
+    city: b.city
   }));
 }
 
@@ -388,6 +412,14 @@ export async function getDeliveryConfirmation(rfqId: string) {
     sellerConfirmed: record.sellerConfirmed,
     completed: Boolean(record.completedAt)
   };
+}
+
+export async function getRatingForRfq(rfqId: string) {
+  await connectToDatabase();
+  const Rating = (await import("@/models/Rating")).default;
+  const rating = await Rating.findOne({ rfq: rfqId }).lean();
+  if (!rating) return null;
+  return { stars: rating.stars, comment: rating.comment ?? "" };
 }
 
 export async function getPendingViolations() {

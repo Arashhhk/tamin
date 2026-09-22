@@ -13,7 +13,7 @@ export interface IRfq {
   quantity: number;
   unit: string;
   province: string;
-  city: string;
+  city?: string;
   images: string[];
   status: RfqStatus;
   selectedBid?: Types.ObjectId | null;
@@ -33,7 +33,11 @@ const RfqSchema = new Schema<IRfq>(
     quantity: { type: Number, required: true, min: 0 },
     unit: { type: String, required: true },
     province: { type: String, required: true, index: true },
-    city: { type: String, required: true, index: true },
+    // Optional — the buyer picks a required province and, only if
+    // they want to narrow it further, a city within it (see
+    // components/ProvinceCitySelect.tsx). Every read site that
+    // displays this falls back to province-only when it's empty.
+    city: { type: String, index: true },
     images: [{ type: String }],
     status: {
       type: String,

@@ -46,6 +46,38 @@
   --camel-900: 29 58 63;
 }
 
+/**
+ * The admin panel shares the same root <html> element (and therefore
+ * the same `.theme-seller` class) as the public site, because
+ * app/layout.tsx sets that class from whatever NORMAL-USER session
+ * cookie happens to be active in the browser — completely unrelated to
+ * the separate, env-based admin login (see lib/admin-auth.ts). If
+ * someone is (or was) also logged into the site as a seller in that
+ * same browser, the inherited --camel-* variables silently repainted
+ * the whole admin UI sky-blue too, even though nothing in the admin
+ * layout ever asked for role-based theming.
+ *
+ * Fix: re-declare the default (buyer/orange) values directly on the
+ * admin panel's own wrapper element. A CSS custom property set
+ * directly on an element always wins over an inherited value from an
+ * ancestor, regardless of that ancestor rule's specificity — so this
+ * pins the admin panel to one fixed color no matter what theme class
+ * ends up on <html>, without needing to touch the root layout's
+ * role-detection logic at all.
+ */
+.admin-scope {
+  --camel-50: 255 243 240;
+  --camel-100: 255 228 219;
+  --camel-200: 255 196 179;
+  --camel-300: 255 157 128;
+  --camel-400: 255 130 92;
+  --camel-500: 255 109 65;
+  --camel-600: 255 75 20;
+  --camel-700: 230 54 0;
+  --camel-800: 184 43 0;
+  --camel-900: 122 29 0;
+}
+
 html {
   scroll-behavior: smooth;
 }

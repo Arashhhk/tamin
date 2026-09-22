@@ -44,6 +44,7 @@ export default async function SellerDashboardPage() {
   let wonBids = 0;
   let pendingDelivery = 0;
   let violations: Awaited<ReturnType<typeof getSellerViolationHistory>> = [];
+  let myBidsByRfq: Record<string, { price: number; status: string }> = {};
 
   if (user) {
     await connectToDatabase();
@@ -51,6 +52,19 @@ export default async function SellerDashboardPage() {
     wonBids = await Bid.countDocuments({ seller: user._id, status: "selected" });
     pendingDelivery = wonBids; // simplification: all selected bids awaiting/at delivery stage
     violations = await getSellerViolationHistory(String(user._id));
+
+    // One query for this seller's bid (if any) across every open RFQ
+    // shown below, instead of a query per card — so "درخواست‌های باز"
+    // can show each RFQ's status label without an N+1 fetch.
+    const myOpenBids = await Bid.find({
+      seller: user._id,
+      rfq: { $in: openRfqs.map((r) => r.id) }
+    })
+      .select("rfq price status")
+      .lean();
+    myBidsByRfq = Object.fromEntries(
+      myOpenBids.map((b: any) => [String(b.rfq), { price: b.price, status: b.status }])
+    );
   }
 
   const stats = [
@@ -68,7 +82,7 @@ export default async function SellerDashboardPage() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         <h1 className="mb-1 text-xl font-extrabold text-ink-900">داشبورد فروشنده</h1>
         <p className="mb-6 text-sm text-ink-500">
-          درخواست‌های خرید باز که می‌توانید روی آن‌ها قیمت پیشنهاد دهید.
+          وضعیت حساب و پیشنهادهای شما در یک نگاه.
         </p>
 
         <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -117,14 +131,16 @@ export default async function SellerDashboardPage() {
           )}
         </div>
 
-        <h2 className="mb-3 text-base font-extrabold text-ink-900">درخواست‌های باز</h2>
+        <h2 className="mb-3 text-base font-extrabold text-ink-900">پیشنهادهای شما روی درخواست‌های باز</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {openRfqs.map((rfq) => (
-            <RfqCard key={rfq.id} rfq={rfq} />
-          ))}
-          {openRfqs.length === 0 && (
+          {openRfqs
+            .filter((rfq) => myBidsByRfq[rfq.id])
+            .map((rfq) => (
+              <RfqCard key={rfq.id} rfq={rfq} sellerBid={myBidsByRfq[rfq.id]} />
+            ))}
+          {openRfqs.filter((rfq) => myBidsByRfq[rfq.id]).length === 0 && (
             <p className="col-span-full rounded-xl2 border border-dashed border-line bg-white p-8 text-center text-sm text-ink-400">
-              در حال حاضر درخواست باز فعالی وجود ندارد.
+              شما هنوز روی هیچ درخواست بازی پیشنهاد ثبت نکرده‌اید.
             </p>
           )}
         </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ProvinceCitySelect from "@/components/ProvinceCitySelect";
 import { getCategoryTree } from "@/lib/queries";
 import { createRfq } from "./actions";
 
@@ -10,11 +11,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/rfq/new" },
   robots: { index: false, follow: true } // form pages don't need indexing
 };
-
-const provinces = [
-  "تهران", "اصفهان", "فارس", "خراسان رضوی", "آذربایجان شرقی",
-  "خوزستان", "کرمان", "گیلان", "مازندران", "البرز"
-];
 
 export default async function NewRfqPage() {
   const categoryTree = await getCategoryTree();
@@ -126,38 +122,7 @@ export default async function NewRfqPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="province" className="mb-1.5 block text-sm font-bold text-ink-800">
-                استان
-              </label>
-              <select
-                id="province"
-                name="province"
-                required
-                className="w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-camel-400"
-              >
-                <option value="">انتخاب کنید</option>
-                {provinces.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="city" className="mb-1.5 block text-sm font-bold text-ink-800">
-                شهر
-              </label>
-              <input
-                id="city"
-                name="city"
-                type="text"
-                required
-                className="w-full rounded-lg border border-line px-3 py-2.5 text-sm focus:border-camel-400"
-              />
-            </div>
-          </div>
+          <ProvinceCitySelect />
 
           <button
             type="submit"

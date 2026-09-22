@@ -47,8 +47,13 @@ export default function BidsList({
               <UserIcon className="h-4 w-4" />
             </span>
             <div>
-              <p className="num text-sm font-extrabold text-camel-600">
+              <p className="num flex items-center gap-1.5 text-sm font-extrabold text-camel-600">
                 {formatToman(bid.price)}
+                {bid.isOwnBid && (
+                  <span className="rounded-full bg-camel-100 px-1.5 py-0.5 text-[10px] font-bold text-camel-700">
+                    پیشنهاد شما
+                  </span>
+                )}
               </p>
               {bid.note && <p className="text-xs text-ink-500">{bid.note}</p>}
               <p className="text-[11px] text-ink-400">

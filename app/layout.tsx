@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Vazirmatn } from "next/font/google";
 import { site } from "@/lib/site";
 import { getCurrentUser } from "@/lib/current-user";
+import RouteProgress from "@/components/RouteProgress";
 import "./globals.css";
 
 /**
@@ -157,6 +158,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       className={`${vazir.variable} ${vazirBody.variable} ${vazirNumeral.variable} ${themeClass}`}
     >
       <body className="font-sans antialiased">
+        <RouteProgress />
         <script
           type="application/ld+json"
           // Structured data: helps Google render the sitelinks search box

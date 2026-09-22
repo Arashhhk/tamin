@@ -42,7 +42,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   ];
 
   return (
-    <div className="flex min-h-screen bg-sand">
+    <div className="admin-scope flex min-h-screen bg-sand">
       <aside className="hidden w-60 shrink-0 flex-col border-l border-line bg-white lg:flex">
         <div className="flex items-center gap-2 border-b border-line px-5 py-4">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-camel-500 text-white">

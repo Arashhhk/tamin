@@ -1,11 +1,11 @@
 {
-  "name": "تامین",
-  "short_name": "تامین",
+  "name": "پله",
+  "short_name": "پله",
   "description": "پلتفرم مزایده معکوس خرید و تأمین کالا",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FDF9F4",
-  "theme_color": "#E8792A",
+  "theme_color": "#ff6d41",
   "lang": "fa",
   "dir": "rtl",
   "icons": [

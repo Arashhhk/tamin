@@ -29,7 +29,7 @@ export default async function Hero() {
   const ctaLabel = !user
     ? "ثبت درخواست خرید یا فروش"
     : user.role === "seller"
-      ? "ثبت درخواست فروش"
+      ? "داشبورد فروش"
       : "ثبت درخواست خرید";
 
   return (
@@ -69,22 +69,28 @@ export default async function Hero() {
         </div>
 
         {/* Illustration slot — see README for exact file spec.
-            Landscape (4:3), not square — `aspect-[4/3]` drives the
-            box shape while a single `max-w-*` value per breakpoint
-            controls its size, so the ratio can never drift out of
-            sync between width/height at any screen size. Scales on
-            the same breakpoint ladder (base/sm/md/lg) as the text
-            column next to it, instead of a size hand-tuned
-            independently. Fades in from all four straight edges
-            (left/right/top/bottom) toward the center — two linear
-            gradients (one per axis) combined with
-            mask-composite:intersect, rather than a single radial
-            gradient (which fades based on diagonal distance from
-            center and visibly eats into the corners first). Visible
-            at every width — below `md:` the outer flex is
-            `flex-col`, so it simply stacks under the text instead of
-            competing with it for horizontal space. */}
-        <div className="relative aspect-[2/1] w-full max-w-[16rem] shrink-0 sm:max-w-[18rem] md:max-w-[20rem] lg:max-w-[32rem]">
+            Wide 2:1 banner, not 4:3 — a taller box grows both width
+            AND height together since the ratio is fixed, which is the
+            opposite of what a "gets wider, not taller, poster-style"
+            banner needs. 2:1 means every extra bit of width adds much
+            less height, so scaling `max-w-*` up mainly reads as wider,
+            closer to the text, without the illustration ballooning in
+            height and overpowering the section. `aspect-[2/1]` drives
+            the box shape. A single fixed `max-w-[32rem]` (not a
+            per-breakpoint ladder) is the upper bound at every screen
+            size — on narrow screens `w-full` already yields something
+            smaller than 512px on its own, so this doesn't force
+            overflow on mobile, it just stops growing past 32rem once
+            the section is wide enough to offer that much room. Fades
+            in from all four straight edges (left/right/top/bottom)
+            toward the center — two linear gradients (one per axis)
+            combined with mask-composite:intersect, rather than a
+            single radial gradient (which fades based on diagonal
+            distance from center and visibly eats into the corners
+            first). Visible at every width — below `md:` the outer flex
+            is `flex-col`, so it simply stacks under the text instead
+            of competing with it for horizontal space. */}
+        <div className="relative aspect-[2/1] w-full max-w-[32rem] shrink-0">
           <div
             className="relative h-full w-full"
             style={{
@@ -101,7 +107,7 @@ export default async function Hero() {
               fill
               priority
               className="object-contain"
-              sizes="(min-width: 1024px) 352px, (min-width: 768px) 320px, (min-width: 640px) 288px, 256px"
+              sizes="(min-width: 640px) 512px, 100vw"
             />
           </div>
         </div>

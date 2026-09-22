@@ -24,7 +24,7 @@ export async function createRfq(formData: FormData) {
   const city = String(formData.get("city") || "").trim();
   const durationHours = Number(formData.get("duration") || 24);
 
-  if (!title || !description || !categorySlug || !quantity || !unit || !province || !city) {
+  if (!title || !description || !categorySlug || !quantity || !unit || !province) {
     throw new Error("همه فیلدهای الزامی را پر کنید");
   }
 
@@ -40,7 +40,7 @@ export async function createRfq(formData: FormData) {
     quantity,
     unit,
     province,
-    city,
+    city: city || undefined,
     status: "active",
     expiresAt: new Date(Date.now() + durationHours * 60 * 60 * 1000)
   });

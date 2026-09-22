@@ -4,12 +4,11 @@ import Hero from "@/components/Hero";
 import SectionHeader from "@/components/SectionHeader";
 import CategoryGrid from "@/components/CategoryGrid";
 import RfqCard from "@/components/RfqCard";
-import RecentActivity from "@/components/RecentActivity";
 import HowItWorksSection from "@/components/HowItWorksSection";
 import TopSellers from "@/components/TopSellers";
 import Announcements from "@/components/Announcements";
 import Footer from "@/components/Footer";
-import { getParentCategories, getActiveRfqs, getTopSellers } from "@/lib/queries";
+import { getParentCategories, getActiveRfqs, getTopSellers, getTopBuyers } from "@/lib/queries";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -19,10 +18,11 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const [categories, activeRfqs, topSellers] = await Promise.all([
+  const [categories, activeRfqs, topSellers, topBuyers] = await Promise.all([
     getParentCategories(),
     getActiveRfqs({ limit: 8 }),
-    getTopSellers(3)
+    getTopSellers(3),
+    getTopBuyers(3)
   ]);
 
   return (
@@ -76,15 +76,7 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 5. Recent activity */}
-        <section className="border-t border-line bg-white py-12">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6">
-            <SectionHeader title="فعالیت‌های اخیر پلتفرم" subtitle="آخرین اتفاقات روی پله." />
-            <RecentActivity />
-          </div>
-        </section>
-
-        {/* 6. Top sellers */}
+        {/* 5. Top sellers */}
         <section className="border-t border-line py-12">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <SectionHeader
@@ -96,7 +88,19 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 7. Announcements */}
+        {/* 5b. Top buyers */}
+        <section className="border-t border-line bg-white py-12">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6">
+            <SectionHeader
+              title="خریداران برتر"
+              subtitle="خریدارانی با بیشترین تعداد خرید موفق."
+              href="/buyers"
+            />
+            <TopSellers sellers={topBuyers} dealsLabel="خرید موفق" href="/buyers" scoreDisplay="trust" />
+          </div>
+        </section>
+
+        {/* 6. Announcements */}
         <section className="border-t border-line bg-white py-12">
           <div className="mx-auto max-w-7xl px-4 sm:px-6">
             <SectionHeader title="اطلاعیه‌ها" />
@@ -104,7 +108,7 @@ export default async function HomePage() {
           </div>
         </section>
       </main>
-      {/* 8. Footer */}
+      {/* 7. Footer */}
       <Footer />
     </>
   );

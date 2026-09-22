@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { getSession } from "@/lib/auth";
 import Rfq from "@/models/Rfq";
 import DeliveryConfirmation from "@/models/DeliveryConfirmation";
+import Bid from "@/models/Bid";
+import User from "@/models/User";
 
 /**
  * POST /api/rfq/:id/delivery
@@ -40,6 +42,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     record.completedAt = new Date();
     rfq.status = "completed";
     await rfq.save();
+    // dealsCompleted feeds the "برترین فروشندگان" (top sellers) sort in
+    // lib/queries.ts / app/sellers/page.tsx — this was the only place
+    // that could ever legitimately increment it, and until now nothing
+    // did, so every seller sat at 0 regardless of real history.
+    const winningBid = await Bid.findById(rfq.selectedBid).select("seller");
+    if (winningBid) {
+      await User.findByIdAndUpdate(winningBid.seller, { $inc: { dealsCompleted: 1 } });
+    }
+    // Symmetric: a completed purchase counts toward the buyer's own
+    // trust score (lib/trust-score.ts) too, not just the seller's —
+    // "چه خریدار چه فروشنده" both need a real deal count to score on.
+    await User.findByIdAndUpdate(rfq.buyer, { $inc: { dealsCompleted: 1 } });
   }
 
   await record.save();
