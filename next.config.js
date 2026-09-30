@@ -28,8 +28,19 @@ const nextConfig = {
         ]
       },
       {
-        source: "/(.*)\\.(svg|jpg|jpeg|png|webp|avif|woff2)",
+        // Fonts are versioned by file name → safe to cache "forever".
+        source: "/(.*)\\.(woff2)",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }]
+      },
+      {
+        // Files dropped into /public (logo.png, og-cover.png, hero image...)
+        // keep the SAME URL when replaced. With `immutable` + 1 year, a
+        // returning visitor's browser would never fetch a replaced logo.
+        // (Hashed /_next/static assets already get immutable from Next.)
+        source: "/(.*)\\.(svg|jpg|jpeg|png|webp|avif)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }
+        ]
       }
     ];
   },

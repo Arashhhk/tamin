@@ -14,9 +14,12 @@
  *                    than Tailwind's default `sky` scale ("یکم
  *                    تیره‌تر" per the design request).
  *
- * The theme class is applied to <html> in app/layout.tsx based on
- * getCurrentUser().role — one place decides the theme, every existing
- * `camel-*` className in the whole codebase repaints automatically.
+ * The theme class is applied to <html> by an inline, before-interactive
+ * script in app/layout.tsx that reads the lightweight `pelleh_role`
+ * cookie (see lib/auth.ts) — not a server-side getCurrentUser() call,
+ * so this works without forcing every route to render dynamically.
+ * One place decides the theme either way; every existing `camel-*`
+ * className in the whole codebase repaints automatically.
  * Values are space-separated R G B triplets (no commas), required by
  * Tailwind's `rgb(var(--x) / <alpha-value>)` opacity-modifier syntax.
  */

@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/privacy" }
 };
 
+// See app/about/page.tsx's comment on this same line — same reasoning
+// applies here.
+export const revalidate = 3600;
+
 export default function PrivacyPage() {
   return (
     <StaticPage title="حریم خصوصی">

@@ -1,12 +1,11 @@
 import Link from "next/link";
-import { Bell, Mail, Search, Gavel, PlusCircle } from "lucide-react";
-import { getCurrentUser } from "@/lib/current-user";
+import { Search, PlusCircle } from "lucide-react";
+import { unstable_cache } from "next/cache";
 import { getParentCategories } from "@/lib/queries";
-import SellerTermsModal from "./SellerTermsModal";
-import LogoutButton from "./LogoutButton";
-import { logoutAction } from "@/app/(auth)/actions";
-
-const roleLabels: Record<string, string> = { buyer: "خریدار", seller: "فروشنده", admin: "ادمین" };
+import HeaderAuth from "./HeaderAuth";
+import RoleAwareCTA from "./RoleAwareCTA";
+import DealsNavLink from "./DealsNavLink";
+import BrandLogo from "./BrandLogo";
 
 const mainNav = [
   { href: "/", label: "خانه" },
@@ -16,30 +15,48 @@ const mainNav = [
   { href: "/how-it-works", label: "چطور کار می‌کند" }
 ];
 
-export default async function Header() {
-  const [user, categories] = await Promise.all([getCurrentUser(), getParentCategories()]);
-  const needsSellerTerms = Boolean(user && user.role === "seller" && !user.sellerTermsAcceptedAt);
+// Category names in the quick-links row are public, identical for
+// every visitor, and change rarely — a perfect candidate for Next's
+// data cache instead of a fresh Mongo round-trip on every single
+// request. This, on its own, was never what forced this whole route
+// tree dynamic (getCurrentUser() was — see HeaderAuth.tsx) — this
+// cache is a separate, additive win once that's no longer blocking
+// static generation.
+const getCachedParentCategories = unstable_cache(getParentCategories, ["header-categories"], {
+  revalidate: 3600,
+  tags: ["categories"]
+});
 
-  // Header CTA changes by role:
-  //  - guest (not logged in, could become either): "ثبت درخواست خرید یا فروش"
-  //  - buyer: "ثبت درخواست خرید" → /rfq/new (creates a buy request)
-  //  - seller: "ثبت درخواست فروش" → /seller (this marketplace is
-  //    reverse-auction: only buyers post requests, sellers bid on them
-  //    — there's no separate "create a sell listing" page, so a
-  //    seller's version of this button sends them to their dashboard,
-  //    the closest real action, rather than to the buyer-only /rfq/new
-  //    which middleware would just redirect them away from anyway.
-  const ctaHref = user?.role === "seller" ? "/seller" : "/rfq/new";
-  const ctaLabel = !user
-    ? "ثبت درخواست خرید یا فروش"
-    : user.role === "seller"
-      ? "پنل فروش"
-      : "ثبت درخواست خرید";
+const ctaClassDesktop =
+  "hidden shrink-0 items-center gap-1.5 rounded-lg bg-camel-500 px-4 py-2.5 text-sm font-bold text-white shadow-pop transition hover:bg-camel-600 md:flex";
+const ctaClassMobile =
+  "flex items-center justify-center gap-1.5 rounded-lg bg-camel-500 py-2.5 text-sm font-bold text-white";
+
+/**
+ * No longer async, no longer touches cookies() (directly or via
+ * getCurrentUser()) — everything that depends on who's logged in now
+ * lives in HeaderAuth / RoleAwareCTA / DealsNavLink (all "use client",
+ * fetching /api/me after mount). That split is the entire reason
+ * app/layout.tsx's old `force-dynamic` could be removed: a Server
+ * Component that only reads public data like getParentCategories()
+ * doesn't force its route into per-request dynamic rendering the way
+ * reading the session cookie did.
+ */
+export default async function Header() {
+  // Header renders on every page, including ones now marked
+  // `export const revalidate = ...` (e.g. app/about/page.tsx) instead
+  // of force-dynamic — which means this call can run during `next
+  // build`, seeding the cache. If the DB genuinely isn't reachable at
+  // that moment for any reason, this falls back to an empty quick-
+  // links row instead of failing the entire build; the next
+  // revalidation picks up real data as soon as the DB is reachable at
+  // runtime. Pages that stay force-dynamic (the actual marketplace
+  // pages) never depend on this fallback in practice, since they
+  // always run at request time, when the DB is expected to be up.
+  const categories = await getCachedParentCategories().catch(() => []);
 
   return (
-    <>
-      {needsSellerTerms && <SellerTermsModal />}
-      <header className="sticky top-0 z-40 border-b border-line bg-sand/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-line bg-sand/95 backdrop-blur">
       {/* Row 1: brand, search, primary actions */}
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
         <Link
@@ -47,9 +64,7 @@ export default async function Header() {
           className="flex shrink-0 items-center gap-2 text-ink-900"
           aria-label="پله - صفحه اصلی"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-camel-500 text-white shadow-pop">
-            <Gavel className="h-5 w-5" strokeWidth={2.25} />
-          </span>
+          <BrandLogo />
           <span className="hidden text-lg font-extrabold tracking-tight sm:inline">پله</span>
         </Link>
 
@@ -74,69 +89,14 @@ export default async function Header() {
           </div>
         </div>
 
-        <Link
-          href={ctaHref}
-          className="hidden shrink-0 items-center gap-1.5 rounded-lg bg-camel-500 px-4 py-2.5 text-sm font-bold text-white shadow-pop transition hover:bg-camel-600 md:flex"
-        >
-          <PlusCircle className="h-4 w-4" />
-          {ctaLabel}
-        </Link>
+        <RoleAwareCTA
+          className={ctaClassDesktop}
+          icon={<PlusCircle className="h-4 w-4" />}
+          iconPosition="before"
+        />
 
         <nav className="flex shrink-0 items-center gap-1.5">
-          {user ? (
-            <>
-              <button
-                type="button"
-                aria-label="اعلان‌ها"
-                className="relative hidden rounded-full p-2 text-ink-600 hover:bg-camel-50 hover:text-camel-600 sm:flex"
-              >
-                <Bell className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="پیام‌ها"
-                className="relative hidden rounded-full p-2 text-ink-600 hover:bg-camel-50 hover:text-camel-600 sm:flex"
-              >
-                <Mail className="h-5 w-5" />
-              </button>
-
-              <Link
-                href={user.role === "seller" ? "/seller" : user.role === "admin" ? "/admin" : "/profile"}
-                className="flex items-center gap-2 rounded-lg py-1.5 pl-1 pr-2 hover:bg-camel-50"
-              >
-                <span className="hidden text-right sm:block">
-                  <span className="block text-sm font-bold leading-tight text-ink-900">
-                    {user.name}
-                  </span>
-                  <span className="block text-xs leading-tight text-ink-400">
-                    {roleLabels[user.role]}
-                  </span>
-                </span>
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-camel-100 text-sm font-bold text-camel-700">
-                  {user.name.slice(0, 1)}
-                </span>
-              </Link>
-
-              <form action={logoutAction}>
-                <LogoutButton />
-              </form>
-            </>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="rounded-lg px-3 py-2 text-sm font-bold text-ink-700 hover:bg-camel-50"
-              >
-                ورود
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-lg bg-camel-500 px-3 py-2 text-sm font-bold text-white hover:bg-camel-600"
-              >
-                ثبت‌نام
-              </Link>
-            </div>
-          )}
+          <HeaderAuth />
         </nav>
       </div>
 
@@ -153,17 +113,7 @@ export default async function Header() {
                 {item.label}
               </Link>
             ))}
-            {/* Only meaningful once logged in — this lists the
-                viewer's own deals (see app/deals/page.tsx), not a
-                public browse page like the rest of mainNav. */}
-            {user && (user.role === "buyer" || user.role === "seller") && (
-              <Link
-                href="/deals"
-                className="whitespace-nowrap text-xs font-bold text-ink-600 transition hover:text-camel-600"
-              >
-                معاملات
-              </Link>
-            )}
+            <DealsNavLink />
           </nav>
           <span className="h-4 w-px shrink-0 bg-line" aria-hidden />
           <div className="flex shrink-0 items-center gap-4">
@@ -182,15 +132,12 @@ export default async function Header() {
 
       {/* Mobile CTA */}
       <div className="border-t border-line bg-white px-4 py-2 md:hidden">
-        <Link
-          href={ctaHref}
-          className="flex items-center justify-center gap-1.5 rounded-lg bg-camel-500 py-2.5 text-sm font-bold text-white"
-        >
-          <PlusCircle className="h-4 w-4" />
-          {ctaLabel}
-        </Link>
+        <RoleAwareCTA
+          className={ctaClassMobile}
+          icon={<PlusCircle className="h-4 w-4" />}
+          iconPosition="before"
+        />
       </div>
     </header>
-    </>
   );
 }

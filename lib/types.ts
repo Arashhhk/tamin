@@ -45,6 +45,7 @@ export interface Rfq {
   title: string;
   description: string;
   categorySlug: string;
+  categoryPath?: { slug: string; name: string }[];
   buyer?: RfqBuyerSummary;
   quantity: number;
   unit: string;

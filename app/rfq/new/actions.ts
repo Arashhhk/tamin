@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { slugify } from "@/lib/slugify";
 import Rfq from "@/models/Rfq";
 import Category from "@/models/Category";
+import { invalidateSitemap } from "@/lib/sitemap-cache";
 
 export async function createRfq(formData: FormData) {
   const session = await getSession();
@@ -45,5 +46,6 @@ export async function createRfq(formData: FormData) {
     expiresAt: new Date(Date.now() + durationHours * 60 * 60 * 1000)
   });
 
+  invalidateSitemap(); // new active RFQ → visible to crawlers quickly
   redirect(`/rfq/${rfq.slug}`);
 }

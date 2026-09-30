@@ -3,6 +3,11 @@ import Rfq from "@/models/Rfq";
 import Category from "@/models/Category";
 import User from "@/models/User";
 import Bid from "@/models/Bid";
+import Article from "@/models/Article";
+import { unstable_cache } from "next/cache";
+import { getRfqSeoState } from "./rfq-seo";
+import { hasCategoryEditorialContent, faqToText } from "./category-seo";
+import { openRfqFilter, isRfqOpen, effectiveRfqStatus, expireOverdueRfqs } from "./rfq-status";
 
 // Every function here is server-only (called from Server Components / Route
 // Handlers). They centralize the "public listings only show status:'active'"
@@ -22,7 +27,9 @@ export async function getCategories() {
       name: c.name,
       icon: c.icon,
       parent: c.parent ? String(c.parent) : null,
-      rfqCount: await Rfq.countDocuments({ category: c._id, status: "active" })
+      hasContent: hasCategoryEditorialContent(c as any),
+      updatedAt: (c as any).updatedAt?.toISOString?.() ?? null,
+      rfqCount: await Rfq.countDocuments({ category: c._id, ...openRfqFilter() })
     }))
   );
   return withCounts;
@@ -40,7 +47,7 @@ export async function getCategoryTree() {
   const parents = all.filter((c) => !c.parent);
 
   const rfqCounts = await Rfq.aggregate([
-    { $match: { status: "active" } },
+    { $match: openRfqFilter() },
     { $group: { _id: "$category", count: { $sum: 1 } } }
   ]);
   const countMap = new Map(rfqCounts.map((r: any) => [String(r._id), r.count as number]));
@@ -117,6 +124,13 @@ export async function getAllCategoriesFlat() {
         parent: c.parent ? String(c.parent) : null,
         depth,
         path,
+        seo: {
+          seoTitle: (c as any).seoTitle ?? "",
+          seoDescription: (c as any).seoDescription ?? "",
+          description: (c as any).description ?? "",
+          seoContent: (c as any).seoContent ?? "",
+          faqText: faqToText((c as any).faq)
+        },
         isLeaf: !childCount.has(String(c._id))
       };
     })
@@ -141,7 +155,7 @@ export async function getFullCategoryTree() {
   await connectToDatabase();
   const flat = await getAllCategoriesFlat();
   const rfqCounts = await Rfq.aggregate([
-    { $match: { status: "active" } },
+    { $match: openRfqFilter() },
     { $group: { _id: "$category", count: { $sum: 1 } } }
   ]);
   const countMap = new Map(rfqCounts.map((r: any) => [String(r._id), r.count as number]));
@@ -153,6 +167,7 @@ export async function getFullCategoryTree() {
     icon: string;
     parent: string | null;
     rfqCount: number;
+    seo: { seoTitle: string; seoDescription: string; description: string; seoContent: string; faqText: string };
     children: Node[];
   }
   const nodesById = new Map<string, Node>();
@@ -182,6 +197,29 @@ export async function getFullCategoryTree() {
   return roots;
 }
 
+/**
+ * Full ancestor chain for a category, root-first, INCLUDING the
+ * category itself as the last element — e.g. for "پرچمدار" nested
+ * under سامسونگ ← موبایل ← دیجیتال, returns [دیجیتال, موبایل, سامسونگ,
+ * پرچمدار]. Depth-capped the same defensive way as
+ * getAllCategoriesFlat's pathAndDepthOf, for the same reason (a
+ * corrupt parent chain degrades to a truncated breadcrumb instead of
+ * an infinite loop).
+ */
+async function getCategoryChain(categoryId: string): Promise<{ slug: string; name: string }[]> {
+  const chain: { slug: string; name: string }[] = [];
+  let currentId: string | null = categoryId;
+  let depth = 0;
+  while (currentId && depth < 20) {
+    const c: any = await Category.findById(currentId).select("slug name parent").lean();
+    if (!c) break;
+    chain.unshift({ slug: c.slug, name: c.name });
+    currentId = c.parent ? String(c.parent) : null;
+    depth += 1;
+  }
+  return chain;
+}
+
 export async function getCategoryBySlug(slug: string) {
   await connectToDatabase();
   const cat = await Category.findOne({ slug }).lean();
@@ -206,7 +244,7 @@ export async function getCategoryBySlug(slug: string) {
     kids.map(async (k) => {
       const grandchildCount = await Category.countDocuments({ parent: k._id });
       const rfqCount =
-        grandchildCount === 0 ? await Rfq.countDocuments({ category: k._id, status: "active" }) : 0;
+        grandchildCount === 0 ? await Rfq.countDocuments({ category: k._id, ...openRfqFilter() }) : 0;
       return {
         id: String(k._id),
         slug: k.slug,
@@ -218,11 +256,26 @@ export async function getCategoryBySlug(slug: string) {
     })
   );
 
-  let parentInfo: { slug: string; name: string } | null = null;
-  if (cat.parent) {
-    const p = await Category.findById(cat.parent).lean();
-    if (p) parentInfo = { slug: p.slug, name: p.name };
-  }
+  // Full ancestor chain (root-first, NOT including this category
+  // itself) — was previously just the one immediate parent, which
+  // rendered an incomplete breadcrumb ("Home / دسته‌بندی‌ها / سامسونگ")
+  // for anything nested more than 2 levels deep. See
+  // app/categories/[slug]/page.tsx's <Breadcrumb>.
+  const fullChain = await getCategoryChain(String(cat._id));
+  const ancestors = fullChain.slice(0, -1);
+
+  // Leaf pages: how many genuinely open auctions (used for metadata and to
+  // decide whether the page has enough content to be indexed).
+  const openRfqCount = isParent
+    ? 0
+    : await Rfq.countDocuments({ category: cat._id, ...openRfqFilter() });
+
+  // Sibling categories (same parent) for internal linking: leaf → related.
+  const siblings = cat.parent
+    ? (await Category.find({ parent: cat.parent, _id: { $ne: cat._id } }).sort({ name: 1 }).limit(12).lean()).map(
+        (s) => ({ slug: s.slug, name: s.name })
+      )
+    : [];
 
   return {
     id: String(cat._id),
@@ -231,29 +284,41 @@ export async function getCategoryBySlug(slug: string) {
     icon: cat.icon,
     isParent,
     children,
-    parent: parentInfo
+    ancestors,
+    openRfqCount,
+    siblings,
+    seoTitle: (cat as any).seoTitle || "",
+    seoDescription: (cat as any).seoDescription || "",
+    description: (cat as any).description || "",
+    seoContent: (cat as any).seoContent || "",
+    faq: ((cat as any).faq || []).map((f: any) => ({ q: f.q, a: f.a })) as { q: string; a: string }[],
+    hasContent: hasCategoryEditorialContent(cat as any)
   };
 }
 
 function toRfqCard(r: any) {
+  const expiresAtIso = r.expiresAt?.toISOString?.() ?? r.expiresAt;
   return {
     id: String(r._id),
     slug: r.slug,
     title: r.title,
     description: r.description,
     categorySlug: r.category?.slug ?? "",
+    categoryPath: [] as { slug: string; name: string }[],
     quantity: r.quantity,
     unit: r.unit,
     province: r.province,
     city: r.city,
-    status: r.status,
+    // An "active" RFQ whose time is up reads as "expired" everywhere, even
+    // before the lazy sweep has persisted it (see lib/rfq-status.ts).
+    status: effectiveRfqStatus(r.status, expiresAtIso),
     selectedBid: r.selectedBid ? String(r.selectedBid) : null,
     selectedAt: r.selectedAt?.toISOString?.() ?? r.selectedAt ?? undefined,
     bidsCount: r.bidsCount ?? 0,
     lowestBid: r.lowestBid ?? undefined,
     createdAt: r.createdAt?.toISOString?.() ?? r.createdAt,
     updatedAt: r.updatedAt?.toISOString?.() ?? r.updatedAt,
-    expiresAt: r.expiresAt?.toISOString?.() ?? r.expiresAt,
+    expiresAt: expiresAtIso,
     buyer: r.buyer
       ? { id: String(r.buyer._id ?? r.buyer), name: r.buyer.name ?? "" }
       : undefined
@@ -274,14 +339,22 @@ async function attachBidStats(rfqs: any[]) {
   }));
 }
 
-export async function getActiveRfqs(opts: { limit?: number; categorySlug?: string; province?: string } = {}) {
+export async function getActiveRfqs(
+  opts: { limit?: number; categorySlug?: string; province?: string; directOnly?: boolean } = {}
+) {
   await connectToDatabase();
-  const query: any = { status: "active" };
+  await expireOverdueRfqs();
+  // Only genuinely open auctions: still "active" AND not past expiresAt.
+  const query: any = openRfqFilter();
 
   if (opts.categorySlug) {
     const cat = await Category.findOne({ slug: opts.categorySlug }).lean();
     if (!cat) return [];
-    if (!cat.parent) {
+    if (opts.directOnly) {
+      // Only RFQs tagged on exactly this category (used by branch pages
+      // to surface RFQs posted before the category gained children).
+      query.category = cat._id;
+    } else if (!cat.parent) {
       // Parent category: include RFQs tagged directly on the parent
       // (rare) plus every one of its subcategories.
       const childIds = await Category.find({ parent: cat._id }).distinct("_id");
@@ -305,14 +378,22 @@ export async function getActiveRfqs(opts: { limit?: number; categorySlug?: strin
 
 export async function getRfqBySlug(slug: string) {
   await connectToDatabase();
+  await expireOverdueRfqs();
   const rfq = await Rfq.findOne({ slug }).populate("category", "slug").populate("buyer", "name").lean();
   if (!rfq) return null;
   const [withStats] = await attachBidStats([rfq]);
-  return toRfqCard(withStats);
+  const card = toRfqCard(withStats);
+  // Full category chain (root-first, including the RFQ's own leaf
+  // category) for the detail page's breadcrumb — previously that
+  // breadcrumb just rendered the raw category SLUG with no name at
+  // all, and only one level of it. See app/rfq/[slug]/page.tsx.
+  card.categoryPath = rfq.category ? await getCategoryChain(String((rfq.category as any)._id)) : [];
+  return card;
 }
 
 export async function getAllRfqsForAdmin() {
   await connectToDatabase();
+  await expireOverdueRfqs();
   const rfqs = await Rfq.find()
     .populate("category", "slug name")
     .populate("buyer", "name")
@@ -322,7 +403,7 @@ export async function getAllRfqsForAdmin() {
   return withStats.map(toRfqCard);
 }
 
-export async function getTopSellers(limit = 3) {
+async function getTopSellersUncached(limit = 3) {
   await connectToDatabase();
   const sellers = await User.find({
     role: "seller",
@@ -330,6 +411,9 @@ export async function getTopSellers(limit = 3) {
     // Strike 1 consequence: excluded from this ranking while penalized.
     $or: [{ visibilityPenalizedUntil: null }, { visibilityPenalizedUntil: { $lt: new Date() } }]
   })
+    // Only what the homepage card actually renders — see app/sellers/page.tsx
+    // for the same projection applied to the full list.
+    .select("name city verified rating ratingCount dealsCompleted")
     .sort({ rating: -1, dealsCompleted: -1 })
     .limit(limit)
     .lean();
@@ -345,7 +429,7 @@ export async function getTopSellers(limit = 3) {
   }));
 }
 
-export async function getTopBuyers(limit = 3) {
+async function getTopBuyersUncached(limit = 3) {
   await connectToDatabase();
   // Buyers aren't rated by anyone yet (only buyer -> seller rating
   // exists today — see components/RatingForm.tsx), so ranking is by
@@ -353,6 +437,9 @@ export async function getTopBuyers(limit = 3) {
   // but starts working automatically if a seller -> buyer rating flow
   // is ever added later, with no change needed here.
   const buyers = await User.find({ role: "buyer", status: "active" })
+    // Only what the homepage card actually renders — see app/buyers/page.tsx
+    // for the same projection applied to the full list.
+    .select("name city verified rating ratingCount dealsCompleted")
     .sort({ dealsCompleted: -1, rating: -1 })
     .limit(limit)
     .lean();
@@ -423,9 +510,10 @@ export async function getAllUsersForAdmin() {
 
 export async function getPlatformStats() {
   await connectToDatabase();
+  await expireOverdueRfqs();
   const [totalRfqs, activeRfqs, totalSellers, completedRfqs] = await Promise.all([
     Rfq.countDocuments({}),
-    Rfq.countDocuments({ status: "active" }),
+    Rfq.countDocuments(openRfqFilter()),
     User.countDocuments({ role: "seller" }),
     Rfq.countDocuments({ status: "completed" })
   ]);
@@ -434,6 +522,7 @@ export async function getPlatformStats() {
 
 export async function getRfqStatusBreakdown() {
   await connectToDatabase();
+  await expireOverdueRfqs();
   const rows = await Rfq.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]);
   const labels: Record<string, string> = {
     active: "در حال مزایده",
@@ -491,6 +580,7 @@ export async function getRfqsPerDay(days = 14) {
 
 export async function getBuyerRfqs(buyerId: string) {
   await connectToDatabase();
+  await expireOverdueRfqs();
   const rfqs = await Rfq.find({ buyer: buyerId }).populate("category", "slug").sort({ createdAt: -1 }).lean();
   const withStats = await attachBidStats(rfqs);
   return withStats.map(toRfqCard);
@@ -499,7 +589,7 @@ export async function getBuyerRfqs(buyerId: string) {
 export async function getSellerBidHistory(sellerId: string) {
   await connectToDatabase();
   const bids = await Bid.find({ seller: sellerId })
-    .populate({ path: "rfq", select: "title slug status" })
+    .populate({ path: "rfq", select: "title slug status expiresAt" })
     .sort({ createdAt: -1 })
     .lean();
   return bids.map((b: any) => ({
@@ -509,6 +599,10 @@ export async function getSellerBidHistory(sellerId: string) {
     price: b.price,
     note: b.note,
     status: b.status,
+    // Whether the auction this bid belongs to is still open. A "pending"
+    // bid on a timed-out / already-decided auction is history, not an
+    // active bid — dashboards use this so it only counts as a stat.
+    rfqOpen: b.rfq ? isRfqOpen(b.rfq.status, b.rfq.expiresAt) : false,
     createdAt: b.createdAt?.toISOString?.() ?? b.createdAt
   }));
 }
@@ -632,3 +726,96 @@ export async function getUnreadSuggestionsCount() {
 }
 
 export { serialize };
+
+/**
+ * Seller dashboard stat: pending bids on auctions that are STILL open.
+ * Bids on timed-out or already-decided auctions no longer count as
+ * "active" — they only live on in the seller's history/statistics.
+ */
+export async function countSellerActiveBids(sellerId: string) {
+  await connectToDatabase();
+  await expireOverdueRfqs();
+  const rfqIds = await Bid.find({ seller: sellerId, status: "pending" }).distinct("rfq");
+  if (rfqIds.length === 0) return 0;
+  return Rfq.countDocuments({ _id: { $in: rfqIds }, ...openRfqFilter() });
+}
+
+/**
+ * Every RFQ that belongs in a sitemap, with its bucket ("active" = live
+ * auction, "archive" = valuable completed one). Decided by getRfqSeoState()
+ * so the sitemap can never disagree with a page's own robots meta.
+ * Fetches only two narrow slices (open + completed), not the whole table.
+ */
+export async function getRfqsForSitemap(limit = 40000) {
+  await connectToDatabase();
+  await expireOverdueRfqs();
+  const rfqs = await Rfq.find({
+    $or: [openRfqFilter(), { status: "completed", selectedBid: { $ne: null } }]
+  })
+    .select("slug title description status expiresAt selectedBid updatedAt")
+    .sort({ updatedAt: -1 })
+    .limit(limit)
+    .lean();
+
+  const out: { slug: string; updatedAt: string; bucket: "active" | "archive" }[] = [];
+  for (const r of rfqs as any[]) {
+    const state = getRfqSeoState(r);
+    if (!state.sitemapBucket) continue;
+    out.push({
+      slug: r.slug,
+      updatedAt: r.updatedAt?.toISOString?.() ?? String(r.updatedAt),
+      bucket: state.sitemapBucket
+    });
+  }
+  return out;
+}
+
+/** Live RFQs in the same category (for "similar active requests" on any RFQ page). */
+export async function getSimilarActiveRfqs(categorySlug: string, excludeId: string, limit = 4) {
+  if (!categorySlug) return [];
+  const rfqs = await getActiveRfqs({ categorySlug, limit: limit + 1 });
+  return rfqs.filter((r) => r.id !== excludeId).slice(0, limit);
+}
+
+// ---- Blog / guides -------------------------------------------------------
+
+function toArticle(a: any) {
+  return {
+    slug: a.slug as string,
+    title: a.title as string,
+    description: a.description as string,
+    content: a.content as string,
+    author: a.author as string,
+    categorySlug: (a.categorySlug as string) || "",
+    publishedAt: (a.publishedAt?.toISOString?.() ?? null) as string | null,
+    updatedAt: (a.updatedAt?.toISOString?.() ?? null) as string | null
+  };
+}
+
+const PUBLISHED = () => ({ status: "published", publishedAt: { $ne: null, $lte: new Date() } });
+
+export async function getPublishedArticles(limit = 50) {
+  await connectToDatabase();
+  const rows = await Article.find(PUBLISHED()).sort({ publishedAt: -1 }).limit(limit).lean();
+  return rows.map(toArticle);
+}
+
+export async function getPublishedArticleBySlug(slug: string) {
+  await connectToDatabase();
+  const a = await Article.findOne({ slug, ...PUBLISHED() }).lean();
+  return a ? toArticle(a) : null;
+}
+
+// Rankings don't involve auction status/expiry, so a few minutes of caching
+// is safe and removes 2 Mongo queries from every homepage request. (Active
+// RFQ lists and counts are deliberately NOT cached: their freshness is the
+// business rule.)
+export const getTopSellers = unstable_cache(getTopSellersUncached, ["top-sellers"], { revalidate: 300 });
+export const getTopBuyers = unstable_cache(getTopBuyersUncached, ["top-buyers"], { revalidate: 300 });
+
+/** If `slug` is a category's OLD slug (renamed by an admin), returns its current slug. */
+export async function getCategoryRedirectSlug(slug: string): Promise<string | null> {
+  await connectToDatabase();
+  const c = await Category.findOne({ oldSlugs: slug }).select("slug").lean();
+  return c?.slug ?? null;
+}

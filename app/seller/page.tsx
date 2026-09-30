@@ -3,7 +3,7 @@ import { AlertTriangle, ShieldCheck } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import RfqCard from "@/components/RfqCard";
-import { getActiveRfqs, getSellerViolationHistory } from "@/lib/queries";
+import { getActiveRfqs, getSellerViolationHistory, countSellerActiveBids } from "@/lib/queries";
 import { getCurrentUser } from "@/lib/current-user";
 import { connectToDatabase } from "@/lib/mongodb";
 import Bid from "@/models/Bid";
@@ -48,7 +48,7 @@ export default async function SellerDashboardPage() {
 
   if (user) {
     await connectToDatabase();
-    activeBids = await Bid.countDocuments({ seller: user._id, status: "pending" });
+    activeBids = await countSellerActiveBids(String(user._id));
     wonBids = await Bid.countDocuments({ seller: user._id, status: "selected" });
     pendingDelivery = wonBids; // simplification: all selected bids awaiting/at delivery stage
     violations = await getSellerViolationHistory(String(user._id));

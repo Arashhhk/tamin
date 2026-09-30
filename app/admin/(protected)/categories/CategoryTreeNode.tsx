@@ -7,6 +7,7 @@ export interface CategoryTreeNodeData {
   icon: string;
   parent: string | null;
   rfqCount: number;
+  seo?: { seoTitle: string; seoDescription: string; description: string; seoContent: string; faqText: string };
   children: CategoryTreeNodeData[];
 }
 
@@ -53,7 +54,8 @@ export default function CategoryTreeNode({
           name: node.name,
           icon: node.icon,
           rfqCount: node.rfqCount,
-          parent: node.parent
+          parent: node.parent,
+          seo: node.seo
         }}
         parents={validParents}
         depth={depth}

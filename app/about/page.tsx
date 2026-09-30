@@ -7,6 +7,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "/about" }
 };
 
+// Fully static content — no per-user data anywhere in this page or in
+// Header/Footer (both fixed to not read cookies; see app/layout.tsx
+// and components/Header.tsx). This is genuinely safe to statically
+// generate and revalidate periodically, unlike the marketplace pages
+// (app/page.tsx and friends), which stay `force-dynamic` for live
+// data reasons explained there.
+export const revalidate = 3600;
+
 export default function AboutPage() {
   return (
     <StaticPage title="درباره پله">

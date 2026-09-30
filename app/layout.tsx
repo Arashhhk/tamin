@@ -1,34 +1,37 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Vazirmatn } from "next/font/google";
 import { site } from "@/lib/site";
-import { getCurrentUser } from "@/lib/current-user";
 import RouteProgress from "@/components/RouteProgress";
 import "./globals.css";
 
 /**
- * Forces every route in the app to render dynamically (per-request)
- * instead of being statically generated at build time.
+ * Role-based theming (buyer/guest → orange, seller → sky blue — see
+ * globals.css's `.theme-seller`) used to be decided server-side by
+ * reading the real session cookie via getCurrentUser(), which is
+ * exactly what forced the ENTIRE app into force-dynamic rendering
+ * (see the notice previously here, and app/api/me/route.ts's comment
+ * for the full explanation). This inline script reproduces the same
+ * flash-free result a different way: `pelleh_role` (see lib/auth.ts)
+ * is a second, non-httpOnly cookie carrying ONLY the role string — no
+ * session, no PII — so plain browser JS can read it and add the class
+ * to <html> itself, with zero server involvement.
  *
- * Root cause this fixes: `Header` and `Footer` — rendered on nearly
- * every page — are async Server Components that call
- * `connectToDatabase()` (via `getCurrentUser()`, `getParentCategories()`,
- * `getCategoryTree()`, etc.). Without this flag, Next.js's build
- * process tries to statically pre-render pages during "Generating
- * static pages", which means executing those components AT BUILD TIME
- * — attempting a live MongoDB connection from Vercel's build
- * environment. That connection isn't guaranteed to succeed (build
- * servers may not have DB network access, or MONGODB_URI may not be
- * exposed at build time), so the export step throws and the whole
- * build fails.
- *
- * This app has no page that's actually static in practice — Header
- * shows live auth state and Footer shows live category counts on every
- * single route — so declaring the whole app dynamic here is the
- * accurate fix, not a workaround: it tells Next.js the truth about
- * this app's rendering requirements in one place, instead of patching
- * it onto every individual page.
+ * `strategy="beforeInteractive"` is what makes this flash-free: Next.js
+ * injects this into the actual HTML <head> and runs it while the
+ * document is still parsing, before the browser paints <body> — the
+ * same mechanism most "avoid dark-mode flash" solutions use, applied
+ * here to role-based theming instead.
  */
-export const dynamic = "force-dynamic";
+const themeScript = `
+(function () {
+  try {
+    var m = document.cookie.match(/(?:^|; )pelleh_role=([^;]*)/);
+    var role = m ? decodeURIComponent(m[1]) : "";
+    if (role === "seller") document.documentElement.classList.add("theme-seller");
+  } catch (e) {}
+})();
+`;
 
 const vazir = Vazirmatn({
   subsets: ["arabic"],
@@ -81,17 +84,17 @@ export const metadata: Metadata = {
       "max-video-preview": -1
     }
   },
-  alternates: {
-    canonical: "/",
-    languages: {
-      "fa-IR": "/",
-      "x-default": "/"
-    }
-  },
+  // No site-wide `alternates` here on purpose: a root-level canonical "/"
+  // (and hreflang "/" entries) were inherited by EVERY page that doesn't
+  // declare its own alternates (dashboards, error pages, ...), telling
+  // Google their canonical is the homepage. Each indexable page declares
+  // its own canonical instead. The site is single-language (fa), so no
+  // hreflang set is needed.
   openGraph: {
     type: "website",
     locale: site.locale,
-    url: site.url,
+    // No fixed `url` here: it would be inherited as og:url = homepage on
+    // every page that doesn't override openGraph.
     siteName: site.name,
     title: `${site.name} | ${site.tagline}`,
     description: site.description,
@@ -118,15 +121,7 @@ export const viewport: Viewport = {
   themeColor: site.themeColor
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  // Role-based theme: buyer (or guest/not-logged-in) → orange (default
-  // CSS variables in :root), seller → sky blue (.theme-seller
-  // overrides in globals.css). This one class on <html> is all that's
-  // needed — every `camel-*` Tailwind class already used throughout
-  // the app repaints automatically, no per-component changes required.
-  const user = await getCurrentUser();
-  const themeClass = user?.role === "seller" ? "theme-seller" : "";
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -134,8 +129,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     alternateName: site.nameEn,
     url: site.url,
     logo: `${site.url}/logo.png`,
-    description: site.description,
-    sameAs: []
+    description: site.description
+    // Add `sameAs` only when real social profile URLs exist — an empty
+    // array is meaningless markup.
   };
 
   const websiteJsonLd = {
@@ -143,21 +139,25 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     "@type": "WebSite",
     name: site.name,
     url: site.url,
-    inLanguage: "fa-IR",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${site.url}/search?q={search_term_string}`,
-      "query-input": "required name=search_term_string"
-    }
+    inLanguage: "fa-IR"
+    // No SearchAction here: it pointed at /search?q=..., a route that
+    // doesn't exist anywhere in this app. Structured data pointing at
+    // a URL Google can't actually crawl is worse than no markup at
+    // all — this can come back the moment a real, crawlable search
+    // route exists.
   };
 
   return (
     <html
       lang="fa"
       dir="rtl"
-      className={`${vazir.variable} ${vazirBody.variable} ${vazirNumeral.variable} ${themeClass}`}
+      suppressHydrationWarning
+      className={`${vazir.variable} ${vazirBody.variable} ${vazirNumeral.variable}`}
     >
       <body className="font-sans antialiased">
+        <Script id="role-theme" strategy="beforeInteractive">
+          {themeScript}
+        </Script>
         <RouteProgress />
         <script
           type="application/ld+json"

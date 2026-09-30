@@ -5,6 +5,7 @@ import Rfq from "@/models/Rfq";
 import DeliveryConfirmation from "@/models/DeliveryConfirmation";
 import Bid from "@/models/Bid";
 import User from "@/models/User";
+import { invalidateSitemap } from "@/lib/sitemap-cache";
 
 /**
  * POST /api/rfq/:id/delivery
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     record.completedAt = new Date();
     rfq.status = "completed";
     await rfq.save();
+    invalidateSitemap(); // completed → may move into the archive bucket
     // dealsCompleted feeds the "برترین فروشندگان" (top sellers) sort in
     // lib/queries.ts / app/sellers/page.tsx — this was the only place
     // that could ever legitimately increment it, and until now nothing

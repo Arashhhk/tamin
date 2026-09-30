@@ -1,11 +1,14 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { connectToDatabase } from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/require-admin";
 import { slugifyBase } from "@/lib/slugify";
 import Category from "@/models/Category";
 import Rfq from "@/models/Rfq";
+import { openRfqFilter } from "@/lib/rfq-status";
+import { parseFaqText } from "@/lib/category-seo";
+import { invalidateSitemap } from "@/lib/sitemap-cache";
 
 /**
  * Category slugs stay short and readable (unlike RFQ slugs, which
@@ -46,6 +49,11 @@ export async function createCategoryAction(formData: FormData) {
   const slug = await generateUniqueCategorySlug(slugInput || name);
 
   await Category.create({ name, slug, icon, parent: parentId || null });
+  // Header, Footer and the sitemap cache the category list for up to
+  // an hour (tag "categories") — without this an admin edit would
+  // take that long to show up in the nav.
+  revalidateTag("categories");
+  invalidateSitemap();
   revalidatePath("/admin/categories");
   revalidatePath("/categories");
   revalidatePath("/");
@@ -63,14 +71,33 @@ export async function deleteCategoryAction(formData: FormData) {
     throw new Error(`این دسته‌بندی ${childCount} زیردسته دارد؛ ابتدا آن‌ها را حذف یا منتقل کنید.`);
   }
 
-  const inUse = await Rfq.countDocuments({ category: id });
-  if (inUse > 0) {
+  // Only auctions that are still live (open, or a deal being carried out:
+  // selecting / in_progress) block deletion. Finished ones — completed,
+  // cancelled, expired, or "active" with its time already up — don't.
+  const blocking = await Rfq.countDocuments({
+    category: id,
+    $or: [openRfqFilter(), { status: { $in: ["selecting", "in_progress"] } }]
+  });
+  if (blocking > 0) {
     throw new Error(
-      `این دسته‌بندی ${inUse} درخواست خرید فعال دارد و قابل حذف نیست.`
+      `این دسته‌بندی ${blocking} درخواست فعال یا در حال انجام دارد و قابل حذف نیست.`
     );
   }
 
+  // Finished RFQs keep their public pages (archive), so they must not be
+  // left pointing at a deleted category: move them to the parent category
+  // when there is one. (Pages also tolerate a missing category.)
+  const doomed = await Category.findById(id).select("parent").lean();
+  if (doomed?.parent) {
+    await Rfq.updateMany({ category: id }, { $set: { category: doomed.parent } });
+  }
+
   await Category.findByIdAndDelete(id);
+  // Header, Footer and the sitemap cache the category list for up to
+  // an hour (tag "categories") — without this an admin edit would
+  // take that long to show up in the nav.
+  revalidateTag("categories");
+  invalidateSitemap();
   revalidatePath("/admin/categories");
   revalidatePath("/categories");
   revalidatePath("/");
@@ -87,6 +114,30 @@ export async function updateCategoryAction(formData: FormData) {
   if (!id || !name) throw new Error("اطلاعات نامعتبر است");
 
   const update: any = { name, icon };
+
+  // Slug (نامک) edit. The URL changes, so the old slug is remembered and
+  // /categories/<old> permanently redirects to the new one (SEO-safe).
+  const slugInput = String(formData.get("slug") || "").trim();
+  let oldSlugForRevalidate: string | null = null;
+  if (slugInput) {
+    const current = await Category.findById(id).select("slug oldSlugs").lean();
+    if (current && slugifyBase(slugInput) !== current.slug) {
+      const newSlug = await generateUniqueCategorySlug(slugInput, id);
+      if (newSlug !== current.slug) {
+        update.slug = newSlug;
+        update.oldSlugs = [...(current.oldSlugs ?? []).filter((s) => s !== newSlug), current.slug];
+        oldSlugForRevalidate = current.slug;
+      }
+    }
+  }
+  // Optional SEO content: only touched when the form actually sent the fields.
+  if (formData.get("seoTitle") !== null) {
+    update.seoTitle = String(formData.get("seoTitle") || "").trim().slice(0, 70);
+    update.seoDescription = String(formData.get("seoDescription") || "").trim().slice(0, 170);
+    update.description = String(formData.get("description") || "").trim().slice(0, 1500);
+    update.seoContent = String(formData.get("seoContent") || "").trim().slice(0, 8000);
+    update.faq = parseFaqText(String(formData.get("faq") || ""));
+  }
   if (parentId !== null) {
     const p = String(parentId).trim();
     if (p === id) throw new Error("یک دسته‌بندی نمی‌تواند زیرمجموعه‌ی خودش باشد");
@@ -109,7 +160,14 @@ export async function updateCategoryAction(formData: FormData) {
     update.parent = p || null;
   }
 
-  await Category.findByIdAndUpdate(id, update);
+  const updated = await Category.findByIdAndUpdate(id, update, { new: true }).select("slug").lean();
+  if (updated?.slug) revalidatePath(`/categories/${updated.slug}`);
+  if (oldSlugForRevalidate) revalidatePath(`/categories/${oldSlugForRevalidate}`);
+  // Header, Footer and the sitemap cache the category list for up to
+  // an hour (tag "categories") — without this an admin edit would
+  // take that long to show up in the nav.
+  revalidateTag("categories");
+  invalidateSitemap();
   revalidatePath("/admin/categories");
   revalidatePath("/categories");
   revalidatePath("/");

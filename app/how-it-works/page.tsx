@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/how-it-works" }
 };
 
+// See app/about/page.tsx's comment on this same line — same reasoning
+// applies here.
+export const revalidate = 3600;
+
 const steps = [
   { title: "۱. ثبت درخواست خرید", body: "آنچه نیاز دارید را با جزئیات (دسته‌بندی، مقدار، مکان تحویل) ثبت می‌کنید." },
   { title: "۲. دریافت پیشنهاد از فروشندگان", body: "فروشندگان مختلف روی درخواست شما قیمت پیشنهاد می‌دهند؛ هویت آن‌ها تا انتخاب نهایی برای شما نمایش داده نمی‌شود." },

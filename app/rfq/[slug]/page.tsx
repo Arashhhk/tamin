@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { cache } from "react";
 import { MapPin, Clock, ShieldQuestion, Star } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -8,25 +9,61 @@ import BidForm from "@/components/BidForm";
 import DeliveryConfirmPanel from "@/components/DeliveryConfirmPanel";
 import RfqChat from "@/components/RfqChat";
 import RatingForm from "@/components/RatingForm";
+import RfqCard from "@/components/RfqCard";
 import BidsList from "./BidsList";
-import { getRfqBySlug, getBidsForViewer, getDeliveryConfirmation, getRatingForRfq } from "@/lib/queries";
+import {
+  getRfqBySlug,
+  getBidsForViewer,
+  getDeliveryConfirmation,
+  getRatingForRfq,
+  getSimilarActiveRfqs
+} from "@/lib/queries";
+import { getRfqSeoState } from "@/lib/rfq-seo";
 import { getCurrentUser } from "@/lib/current-user";
 import { checkOverdueDeliveryForRfq } from "@/lib/violations";
 import { isChatClosed, CHAT_AUTO_CLOSE_HOURS } from "@/lib/chat";
-import { absoluteUrl } from "@/lib/site";
+import { absoluteUrl, site } from "@/lib/site";
 import { formatNumber, formatToman, timeRemaining } from "@/lib/format";
+
+/**
+ * This route renders dynamically: getCurrentUser() below reads the
+ * session cookie for real, page-specific reasons (who owns the RFQ,
+ * which bids reveal identity to whom, whether the seller already
+ * bid). React's request-scoped cache() only de-duplicates the two
+ * lookups (generateMetadata + the page) within ONE request — it never
+ * outlives the request. An earlier version used unstable_cache with a
+ * 30s window here, which made status/selectedBid stale right after a
+ * buyer selected a seller or a seller bid, so the delivery panel and
+ * chat didn't appear for up to 30 seconds. RFQ state is transactional;
+ * it must never be served from a time-based cache.
+ */
+const getCachedRfqBySlug = cache(getRfqBySlug);
+
+// Explicit and redundant with the getCurrentUser() call below (Next.js
+// already renders this dynamically because of that), kept anyway so
+// the route's actual rendering mode is stated plainly here rather than
+// only implied by a function call deep in the component.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const rfq = await getRfqBySlug(params.slug);
+  const rfq = await getCachedRfqBySlug(params.slug);
   if (!rfq) return { title: "درخواست یافت نشد" };
 
   const locationLabel = rfq.city ? `${rfq.city}، ${rfq.province}` : rfq.province;
-  const title = `${rfq.title} | درخواست خرید در ${rfq.city || rfq.province}`;
-  const description = `${rfq.description} — ${formatNumber(rfq.bidsCount)} پیشنهاد فروشنده تاکنون ثبت شده. مکان تحویل: ${locationLabel}.`;
+  const title = `${rfq.title} | مزایده خرید در ${rfq.city || rfq.province}`;
+  // Meta descriptions much past ~155-160 chars just get truncated by
+  // Google mid-sentence, which reads worse than a short one that ends
+  // cleanly — rfq.description is free-form buyer text with no length
+  // cap, so it's clipped here with room left for the fixed suffix.
+  const isOpen = getRfqSeoState(rfq).marketplaceActive;
+  const rawDescription = rfq.description.length > 85 ? `${rfq.description.slice(0, 85).trim()}…` : rfq.description;
+  const description = isOpen
+    ? `${rawDescription} — ${formatNumber(rfq.bidsCount)} پیشنهاد فروشنده. مکان تحویل: ${locationLabel}.`
+    : `${rawDescription} — این درخواست خرید به پایان رسیده است. مکان تحویل: ${locationLabel}.`;
 
   return {
     title,
@@ -36,17 +73,20 @@ export async function generateMetadata({
       title,
       description,
       url: absoluteUrl(`/rfq/${rfq.slug}`),
-      type: "website"
+      type: "website",
+      locale: site.locale,
+      siteName: site.name
     },
-    robots:
-      rfq.status === "active"
-        ? { index: true, follow: true }
-        : { index: false, follow: true } // delisted RFQs stay crawlable via links but out of the index
+    twitter: { card: "summary", title, description },
+    // Marketplace visibility and index eligibility are separate decisions
+    // (lib/rfq-seo.ts): a completed, content-rich RFQ stays indexable as an
+    // archive page; expired/cancelled/thin ones are noindex,follow.
+    robots: getRfqSeoState(rfq).robots
   };
 }
 
 export default async function RfqDetailPage({ params }: { params: { slug: string } }) {
-  const rfq = await getRfqBySlug(params.slug);
+  const rfq = await getCachedRfqBySlug(params.slug);
   if (!rfq) notFound();
 
   const user = await getCurrentUser();
@@ -74,6 +114,15 @@ export default async function RfqDetailPage({ params }: { params: { slug: string
 
   const locationLabel = rfq.city ? `${rfq.city}، ${rfq.province}` : rfq.province;
 
+  const seo = getRfqSeoState(rfq);
+  const isClosed = !seo.marketplaceActive;
+  const closedNotice =
+    rfq.status === "cancelled"
+      ? "این درخواست خرید لغو شده است."
+      : "این درخواست خرید به پایان رسیده است.";
+  // Only genuinely open auctions are ever linked from here — never other finished ones.
+  const similarActive = isClosed ? await getSimilarActiveRfqs(rfq.categorySlug, rfq.id, 4) : [];
+
   // Opportunistic check: if this RFQ is in_progress and the delivery
   // deadline has passed without the seller confirming, this records a
   // violation (see lib/violations.ts). Cheap single-doc check, runs on
@@ -86,18 +135,29 @@ export default async function RfqDetailPage({ params }: { params: { slug: string
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Product",
-    name: rfq.title,
-    description: rfq.description,
-    category: rfq.categorySlug,
-    offers: {
-      "@type": "AggregateOffer",
-      priceCurrency: "IRR",
-      lowPrice: rfq.lowestBid,
-      offerCount: rfq.bidsCount,
-      availability: "https://schema.org/InStock",
-      areaServed: rfq.city ? `${rfq.city}, ${rfq.province}` : rfq.province
-    }
+    "@type": "BreadcrumbList",
+    // Real ancestor chain (see lib/queries.ts's getRfqBySlug ->
+    // getCategoryChain), not a fabricated Product/Offer schema — this
+    // RFQ is a buy-side request that sellers bid on, not a listing
+    // with a real public "price" a shopper could act on, so a
+    // Product/AggregateOffer schema here would tell Google something
+    // that isn't true about the page's content. BreadcrumbList is the
+    // one schema type that's unambiguously accurate for every RFQ page.
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "پله", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name: "دسته‌بندی‌ها", item: absoluteUrl("/categories") },
+      ...(rfq.categoryPath ?? []).map((c, i) => ({
+        "@type": "ListItem",
+        position: i + 3,
+        name: c.name,
+        item: absoluteUrl(`/categories/${c.slug}`)
+      })),
+      {
+        "@type": "ListItem",
+        position: (rfq.categoryPath?.length ?? 0) + 3,
+        name: rfq.title
+      }
+    ]
   };
 
   return (
@@ -113,16 +173,31 @@ export default async function RfqDetailPage({ params }: { params: { slug: string
             پله
           </Link>
           <span className="mx-1.5">/</span>
-          <Link href={`/categories/${rfq.categorySlug}`} className="hover:text-camel-600">
-            {rfq.categorySlug}
+          <Link href="/categories" className="hover:text-camel-600">
+            دسته‌بندی‌ها
           </Link>
+          {(rfq.categoryPath ?? []).map((c) => (
+            <span key={c.slug}>
+              <span className="mx-1.5">/</span>
+              <Link href={`/categories/${c.slug}`} className="hover:text-camel-600">
+                {c.name}
+              </Link>
+            </span>
+          ))}
           <span className="mx-1.5">/</span>
           <span className="text-ink-600">{rfq.title}</span>
         </nav>
 
         <article className="rounded-xl2 border border-line bg-white p-6 shadow-card">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="flex items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs font-bold text-success">
+            <span className="flex items-center gap-1 rounded-full bg-camel-100 px-2.5 py-1 text-xs font-bold text-camel-800">
+              مزایده معکوس
+            </span>
+            <span
+              className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                isClosed ? "bg-ink-100 text-ink-500" : "bg-success/10 text-success"
+              }`}
+            >
               <Clock className="h-3.5 w-3.5" />
               {timeRemaining(rfq.expiresAt)}
             </span>
@@ -153,6 +228,18 @@ export default async function RfqDetailPage({ params }: { params: { slug: string
               <dd className="num mt-1 font-bold text-ink-900">{formatNumber(rfq.bidsCount)}</dd>
             </div>
           </dl>
+
+          {isClosed && (
+            <div
+              role="status"
+              className="mt-5 rounded-xl2 border border-line bg-ink-50 p-4 text-center text-sm font-bold text-ink-600"
+            >
+              {closedNotice}
+              <p className="mt-1 text-xs font-normal text-ink-400">
+                امکان ثبت پیشنهاد جدید روی این درخواست وجود ندارد.
+              </p>
+            </div>
+          )}
 
           {rfq.status === "active" && (
             <div className="mt-5 flex items-start gap-2 rounded-xl2 border border-line bg-sand p-4 text-xs text-ink-500">
@@ -244,6 +331,19 @@ export default async function RfqDetailPage({ params }: { params: { slug: string
             )}
           </section>
         </article>
+
+        {similarActive.length > 0 && (
+          <section aria-labelledby="similar-heading" className="mt-8">
+            <h2 id="similar-heading" className="mb-4 text-base font-extrabold text-ink-900">
+              درخواست‌های خرید فعال مشابه
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {similarActive.map((r) => (
+                <RfqCard key={r.id} rfq={r} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <Footer />
     </>

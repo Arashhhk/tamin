@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { connectToDatabase } from "@/lib/mongodb";
 import { requireAdmin } from "@/lib/require-admin";
 import Rfq from "@/models/Rfq";
+import { invalidateSitemap } from "@/lib/sitemap-cache";
 
 export async function cancelRfqAction(formData: FormData) {
   await requireAdmin();
@@ -16,6 +17,7 @@ export async function cancelRfqAction(formData: FormData) {
 
   rfq.status = "cancelled";
   await rfq.save();
+  invalidateSitemap();
 
   revalidatePath("/admin/rfqs");
   revalidatePath("/rfq");

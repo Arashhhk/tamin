@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { isEffectivelySuspended, checkSuspiciousBid } from "@/lib/violations";
 import Rfq from "@/models/Rfq";
 import Bid from "@/models/Bid";
+import { isRfqOpen } from "@/lib/rfq-status";
 import User from "@/models/User";
 
 /**
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const rfq = await Rfq.findById(params.id);
-  if (!rfq || rfq.status !== "active") {
+  if (!rfq || !isRfqOpen(rfq.status, rfq.expiresAt)) {
     return NextResponse.json({ error: "این درخواست دیگر باز نیست" }, { status: 409 });
   }
 

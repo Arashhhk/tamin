@@ -1,9 +1,23 @@
 import Link from "next/link";
 import { Gavel } from "lucide-react";
+import { unstable_cache } from "next/cache";
 import { getCategoryTree } from "@/lib/queries";
 
+// Public, identical for every visitor, changes rarely — cached the
+// same way as Header's quick-links (components/Header.tsx) rather
+// than hit Mongo on every single request.
+const getCachedCategoryTree = unstable_cache(getCategoryTree, ["footer-categories"], {
+  revalidate: 3600,
+  tags: ["categories"]
+});
+
 export default async function Footer() {
-  const categoryTree = await getCategoryTree();
+  // See the equivalent comment in components/Header.tsx: this can run
+  // during `next build` for pages using ISR (`revalidate`) rather than
+  // force-dynamic, so a DB hiccup at that exact moment degrades to an
+  // empty category directory for this one build instead of failing it
+  // outright — self-heals on the next revalidation.
+  const categoryTree = await getCachedCategoryTree().catch(() => []);
 
   return (
     <footer className="border-t border-line bg-white">
@@ -41,8 +55,8 @@ export default async function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="hover:text-camel-600">
-                  مجله پله
+                <Link href="/buyers" className="hover:text-camel-600">
+                  خریداران برتر
                 </Link>
               </li>
             </ul>

@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" }
 };
 
+// See app/about/page.tsx's comment on this same line — same reasoning
+// applies here.
+export const revalidate = 3600;
+
 export default function ContactPage() {
   return (
     <>

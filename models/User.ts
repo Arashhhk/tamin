@@ -68,5 +68,15 @@ const UserSchema = new Schema<IUser>(
 );
 
 UserSchema.index({ role: 1, province: 1 });
+// Matches the exact filter+sort shape of the /sellers page and
+// getTopSellers() (lib/queries.ts): role+status equality filter,
+// then sorted by rating then dealsCompleted, both descending.
+UserSchema.index({ role: 1, status: 1, rating: -1, dealsCompleted: -1 });
+// Same, for /buyers and getTopBuyers() — buyers sort by dealsCompleted
+// first, rating second, the reverse order of the sellers index above,
+// which is why this needs to be its own compound index rather than
+// reusing the one above (a compound index only serves a sort that
+// matches its field ORDER, not just its field set).
+UserSchema.index({ role: 1, status: 1, dealsCompleted: -1, rating: -1 });
 
 export default (models.User as Model<IUser>) || model<IUser>("User", UserSchema);

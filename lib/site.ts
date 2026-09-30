@@ -37,7 +37,9 @@ export const site = {
   themeColor: "#ff6d41",
   twitter: "@pelleh_market",
   keywords: [
+    "مزایده",
     "مزایده آنلاین",
+    "مزایده معکوس",
     "درخواست خرید",
     "تامین کالا",
     "خرید عمده",

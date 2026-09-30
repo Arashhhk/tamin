@@ -17,6 +17,23 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" }
 };
 
+/**
+ * Explicit per-page, not inherited from the root layout anymore (see
+ * app/layout.tsx) — this page's data (active RFQs, category counts,
+ * top sellers/buyers) comes straight from MongoDB via Mongoose, which
+ * Next.js has no built-in way to treat as cacheable the way it does
+ * `fetch()`. Left to its own default, a page like this with no
+ * Dynamic API usage would be treated as static and Next would try to
+ * execute it — and open a live MongoDB connection — during the Vercel
+ * BUILD step. Whether that connection reliably succeeds there depends
+ * on this project's specific env-var/network setup, which isn't
+ * something to gamble a production build on without testing. Once
+ * that's confirmed safe, swapping this single line for
+ * `export const revalidate = 60` (ISR) is the natural next step for
+ * even better performance than per-request rendering.
+ */
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const [categories, activeRfqs, topSellers, topBuyers] = await Promise.all([
     getParentCategories(),

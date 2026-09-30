@@ -3,6 +3,8 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { getSession } from "@/lib/auth";
 import Rfq from "@/models/Rfq";
 import Bid from "@/models/Bid";
+import { isRfqOpen } from "@/lib/rfq-status";
+import { invalidateSitemap } from "@/lib/sitemap-cache";
 
 /**
  * POST /api/rfq/:id/select  { bidId }
@@ -37,6 +39,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (rfq.status !== "active") {
     return NextResponse.json({ error: "این درخواست قبلاً بسته شده است" }, { status: 409 });
   }
+  // Time's up: an expired auction is closed for good (same as one with a
+  // chosen seller) — it only survives as statistics.
+  if (!isRfqOpen(rfq.status, rfq.expiresAt)) {
+    return NextResponse.json({ error: "زمان این مزایده به پایان رسیده است" }, { status: 409 });
+  }
 
   const winningBid = await Bid.findOne({ _id: bidId, rfq: params.id });
   if (!winningBid) return NextResponse.json({ error: "پیشنهاد یافت نشد" }, { status: 404 });
@@ -49,6 +56,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   rfq.selectedAt = new Date();
   rfq.status = "in_progress";
   await rfq.save();
+  invalidateSitemap(); // no longer an active auction → drop from sitemap now
 
   const seller = await winningBid.populate("seller", "name phone companyName city province");
 

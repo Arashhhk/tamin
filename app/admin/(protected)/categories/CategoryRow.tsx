@@ -17,14 +17,26 @@ export default function CategoryRow({
   parents,
   depth = 0
 }: {
-  category: { id: string; slug: string; name: string; icon: string; rfqCount: number; parent?: string | null };
+  category: {
+    id: string;
+    slug: string;
+    name: string;
+    icon: string;
+    rfqCount: number;
+    parent?: string | null;
+    seo?: { seoTitle: string; seoDescription: string; description: string; seoContent: string; faqText: string };
+  };
   parents: ParentOption[];
   depth?: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(category.name);
   const [icon, setIcon] = useState(category.icon);
+  const [slug, setSlug] = useState(category.slug);
   const [parent, setParent] = useState(category.parent || "");
+  const [seo, setSeo] = useState(
+    category.seo ?? { seoTitle: "", seoDescription: "", description: "", seoContent: "", faqText: "" }
+  );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -36,7 +48,13 @@ export default function CategoryRow({
     fd.set("id", category.id);
     fd.set("name", name);
     fd.set("icon", icon);
+    fd.set("slug", slug);
     fd.set("parent", parent);
+    fd.set("seoTitle", seo.seoTitle);
+    fd.set("seoDescription", seo.seoDescription);
+    fd.set("description", seo.description);
+    fd.set("seoContent", seo.seoContent);
+    fd.set("faq", seo.faqText);
     startTransition(async () => {
       try {
         await updateCategoryAction(fd);
@@ -69,6 +87,14 @@ export default function CategoryRow({
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="min-w-[120px] flex-1 rounded-lg border border-line px-2.5 py-1.5 text-sm focus:border-camel-400"
+          />
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            dir="ltr"
+            aria-label="نامک (آدرس دسته)"
+            placeholder="نامک (slug)"
+            className="w-36 rounded-lg border border-line px-2.5 py-1.5 text-xs focus:border-camel-400"
           />
           <select
             value={parent}
@@ -103,6 +129,51 @@ export default function CategoryRow({
             <X className="h-4 w-4" />
           </button>
         </div>
+        <p className="mt-2 text-[11px] text-ink-400">
+          تغییر نامک، آدرس صفحه‌ی دسته را عوض می‌کند؛ آدرس قبلی خودکار به آدرس جدید هدایت می‌شود.
+        </p>
+        <details className="mt-3 rounded-lg border border-line p-3">
+          <summary className="cursor-pointer text-xs font-bold text-ink-600">
+            محتوای سئوی صفحه‌ی دسته (اختیاری)
+          </summary>
+          <div className="mt-3 space-y-2 text-xs">
+            <input
+              value={seo.seoTitle}
+              onChange={(e) => setSeo({ ...seo, seoTitle: e.target.value })}
+              maxLength={70}
+              placeholder="عنوان سئو (حداکثر ۷۰ کاراکتر؛ خالی = عنوان خودکار)"
+              className="w-full rounded-lg border border-line px-2.5 py-1.5 focus:border-camel-400"
+            />
+            <input
+              value={seo.seoDescription}
+              onChange={(e) => setSeo({ ...seo, seoDescription: e.target.value })}
+              maxLength={170}
+              placeholder="توضیح متا (حداکثر ۱۷۰ کاراکتر؛ خالی = توضیح خودکار)"
+              className="w-full rounded-lg border border-line px-2.5 py-1.5 focus:border-camel-400"
+            />
+            <textarea
+              value={seo.description}
+              onChange={(e) => setSeo({ ...seo, description: e.target.value })}
+              rows={3}
+              placeholder="توضیح دسته (زیر عنوان صفحه نمایش داده می‌شود)"
+              className="w-full rounded-lg border border-line px-2.5 py-1.5 focus:border-camel-400"
+            />
+            <textarea
+              value={seo.seoContent}
+              onChange={(e) => setSeo({ ...seo, seoContent: e.target.value })}
+              rows={6}
+              placeholder="محتوای تکمیلی پایین صفحه. پاراگراف‌ها با یک خط خالی جدا شوند؛ خطی که با «## » شروع شود عنوان فرعی است."
+              className="w-full rounded-lg border border-line px-2.5 py-1.5 focus:border-camel-400"
+            />
+            <textarea
+              value={seo.faqText}
+              onChange={(e) => setSeo({ ...seo, faqText: e.target.value })}
+              rows={5}
+              placeholder={"سوالات متداول: هر مورد یک بلوک؛ خط اول سوال، خطوط بعد پاسخ؛ بلوک‌ها با یک خط خالی جدا شوند."}
+              className="w-full rounded-lg border border-line px-2.5 py-1.5 focus:border-camel-400"
+            />
+          </div>
+        </details>
         {error && <p className="mt-2 text-xs font-bold text-danger">{error}</p>}
       </div>
     );

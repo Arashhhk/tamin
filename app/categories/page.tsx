@@ -13,6 +13,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/categories" }
 };
 
+// Live MongoDB data (category tree + counts), not inherited from the
+// root layout anymore — see app/page.tsx's full comment on this same
+// line for why an explicit per-page flag is needed here to avoid a
+// build-time DB connection attempt.
+export const dynamic = "force-dynamic";
+
 export default async function CategoriesPage() {
   const categoryTree = await getCategoryTree();
 

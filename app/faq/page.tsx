@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/faq" }
 };
 
+// See app/about/page.tsx's comment on this same line — same reasoning
+// applies here.
+export const revalidate = 3600;
+
 const faqs = [
   {
     q: "ثبت درخواست خرید چقدر هزینه دارد؟",

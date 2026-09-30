@@ -41,7 +41,7 @@ export default async function ProfileOverviewPage() {
       : [
           { icon: Gavel, label: "کل پیشنهادها", value: bidHistory.length },
           { icon: CheckCircle2, label: "برنده شده", value: bidHistory.filter((b) => b.status === "selected").length },
-          { icon: Clock, label: "در انتظار", value: bidHistory.filter((b) => b.status === "pending").length },
+          { icon: Clock, label: "در انتظار", value: bidHistory.filter((b) => b.status === "pending" && b.rfqOpen).length },
           { icon: FileText, label: "رد شده", value: bidHistory.filter((b) => b.status === "rejected").length }
         ];
 
