@@ -3,6 +3,12 @@ import { getFullCategoryTree, getAllCategoriesFlat } from "@/lib/queries";
 import { formatNumber } from "@/lib/format";
 import CreateCategoryForm from "./CreateCategoryForm";
 import CategoryTreeNode from "./CategoryTreeNode";
+import AiSeoPanel, { type AiSeoItem } from "./AiSeoPanel";
+import { isAiConfigured } from "@/lib/ai/provider";
+import { getMissingSeoFields, getSeoStatus, parseFaqText } from "@/lib/category-seo";
+
+// AI generation runs per category inside a server action (~up to a minute).
+export const maxDuration = 60;
 
 export const metadata: Metadata = { title: "دسته‌بندی‌ها | ادمین", robots: { index: false } };
 export default async function AdminCategoriesPage() {
@@ -13,11 +19,18 @@ export default async function AdminCategoriesPage() {
   const parentOptions = flat.map((c) => ({ id: c.id, name: c.path }));
   const totalCount = flat.length;
 
+  const aiItems: AiSeoItem[] = flat.map((c) => {
+    const missing = getMissingSeoFields({ ...c.seo, faqCount: parseFaqText(c.seo.faqText).length });
+    return { id: c.id, name: c.name, path: c.path, status: getSeoStatus(missing), missing };
+  });
+
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-extrabold text-ink-900">دسته‌بندی‌ها ({formatNumber(totalCount)})</h1>
       </div>
+
+      {aiItems.length > 0 && <AiSeoPanel items={aiItems} aiConfigured={isAiConfigured()} />}
 
       <CreateCategoryForm parents={parentOptions} />
 

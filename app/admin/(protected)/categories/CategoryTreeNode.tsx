@@ -48,6 +48,7 @@ export default function CategoryTreeNode({
   return (
     <div className="space-y-2">
       <CategoryRow
+        key={`${node.id}:${JSON.stringify(node.seo ?? {})}`}
         category={{
           id: node.id,
           slug: node.slug,

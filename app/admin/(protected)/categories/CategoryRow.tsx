@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import * as Icons from "lucide-react";
-import { Pencil, Trash2, X, Check } from "lucide-react";
+import { Pencil, Trash2, X, Check, Sparkles } from "lucide-react";
 import { updateCategoryAction, deleteCategoryAction } from "./actions";
 import { formatNumber } from "@/lib/format";
 import IconPicker from "./IconPicker";
+import AiSeoSingle from "./AiSeoSingle";
+import { getMissingSeoFields, parseFaqText } from "@/lib/category-seo";
 
 interface ParentOption {
   id: string;
@@ -37,6 +39,7 @@ export default function CategoryRow({
   const [seo, setSeo] = useState(
     category.seo ?? { seoTitle: "", seoDescription: "", description: "", seoContent: "", faqText: "" }
   );
+  const [aiOpen, setAiOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -179,7 +182,11 @@ export default function CategoryRow({
     );
   }
 
+  const seoComplete =
+    getMissingSeoFields({ ...(category.seo ?? {}), faqCount: parseFaqText(category.seo?.faqText ?? "").length }).length === 0;
+
   return (
+    <div>
     <div
       className={`flex items-center justify-between rounded-xl2 border border-line bg-white p-3 ${depth > 0 ? "bg-sand/60" : "shadow-card"}`}
     >
@@ -195,6 +202,14 @@ export default function CategoryRow({
         </span>
       </span>
       <span className="flex items-center gap-1.5">
+        <button
+          onClick={() => setAiOpen((v) => !v)}
+          aria-label="تولید SEO با AI"
+          title="✨ تولید SEO با AI"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-400 hover:bg-camel-50 hover:text-camel-600"
+        >
+          <Sparkles className="h-4 w-4" />
+        </button>
         <button
           onClick={() => setEditing(true)}
           aria-label="ویرایش"
@@ -212,6 +227,10 @@ export default function CategoryRow({
         </button>
       </span>
       {error && <p className="mt-2 text-xs font-bold text-danger">{error}</p>}
+    </div>
+    {aiOpen && (
+      <AiSeoSingle categoryId={category.id} isComplete={seoComplete} onClose={() => setAiOpen(false)} />
+    )}
     </div>
   );
 }
